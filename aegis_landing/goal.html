@@ -1,0 +1,678 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AEGIS — New Investigation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@350;400;450;500;550;600;700&family=JetBrains+Mono:wght@400;450;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-base:#09090b;--bg-surface:#0f1115;--bg-raised:#151619;--bg-elevated:#1a1b1f;
+  --bg-hover:#1f2024;--bg-active:#25262b;
+  --border:#232429;--border-light:#2a2b31;
+  --text-primary:#ececee;--text-secondary:#9395a1;--text-tertiary:#5e606d;--text-muted:#44464f;
+  --accent:#3b82f6;--accent-dim:#2563eb;--accent-glow:rgba(59,130,246,0.08);--accent-subtle:rgba(59,130,246,0.12);--accent-border:rgba(59,130,246,0.25);
+  --critical:#ef4444;--critical-bg:rgba(239,68,68,0.06);--critical-border:rgba(239,68,68,0.2);
+  --success:#22c55e;--success-bg:rgba(34,197,94,0.06);--success-border:rgba(34,197,94,0.2);
+  --high:#f59e0b;--high-bg:rgba(245,158,11,0.06);--high-border:rgba(245,158,11,0.2);
+  --purple:#a855f7;--purple-bg:rgba(168,85,247,0.06);--purple-border:rgba(168,85,247,0.2);
+  --cyan:#06b6d4;--orange:#f97316;--pink:#ec4899;--emerald:#10b981;
+  --sidebar-w:232px;--topbar-h:44px;--radius-sm:5px;--radius-md:7px;--radius-lg:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,system-ui,sans-serif;background:var(--bg-base);color:var(--text-primary);height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased;font-feature-settings:'cv02','cv03','cv04','cv11'}
+.shell{display:flex;height:100vh}
+
+/* ═══ Sidebar ═══ */
+.sidebar{width:var(--sidebar-w);background:var(--bg-surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;user-select:none}
+.sidebar-brand{height:var(--topbar-h);display:flex;align-items:center;padding:0 16px;gap:10px;border-bottom:1px solid var(--border)}
+.sidebar-brand .bi{width:24px;height:24px;background:var(--accent);border-radius:5px;display:flex;align-items:center;justify-content:center}
+.sidebar-brand .bi .material-symbols-outlined{font-size:14px;color:#fff;font-variation-settings:'FILL' 1}
+.sidebar-brand .bt{font-size:13px;font-weight:650;letter-spacing:-0.02em}
+.ss{padding:6px 8px 0}.sl{font-size:10px;font-weight:600;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;padding:8px 8px 4px}
+.si{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;font-weight:450;color:var(--text-secondary);transition:all 100ms;text-decoration:none;position:relative}
+.si:hover{background:var(--bg-hover);color:var(--text-primary)}
+.si.a{background:var(--accent-subtle);color:var(--accent);font-weight:550}
+.si.a::before{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:2px;height:14px;background:var(--accent);border-radius:0 2px 2px 0}
+.si .material-symbols-outlined{font-size:17px;font-variation-settings:'wght' 300,'FILL' 0}
+.si.a .material-symbols-outlined{font-variation-settings:'wght' 400,'FILL' 1}
+.si .bd{margin-left:auto;font-size:9.5px;font-weight:600;color:var(--text-tertiary);background:var(--bg-active);padding:0 5px;border-radius:3px;height:15px;display:flex;align-items:center}
+.si .bd.al{background:var(--critical-bg);color:var(--critical);border:1px solid var(--critical-border)}
+.sf{margin-top:auto;border-top:1px solid var(--border);padding:8px}
+.su{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--radius-sm);cursor:pointer}
+.su .av{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent-dim),var(--accent));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
+.su .un{font-size:12px;font-weight:550}.su .ur{font-size:10px;color:var(--text-muted)}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ═══ Topbar ═══ */
+.topbar{height:var(--topbar-h);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:8px;flex-shrink:0;background:var(--bg-surface)}
+.bc{display:flex;align-items:center;gap:6px;font-size:13px}
+.bc .d{color:var(--text-tertiary)}.bc .s{color:var(--text-muted);font-size:11px}.bc .c{color:var(--text-primary);font-weight:550}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.tb-btn{height:28px;padding:0 10px;display:flex;align-items:center;gap:4px;border-radius:var(--radius-sm);border:1px solid var(--border);background:none;color:var(--text-tertiary);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;transition:all 100ms}
+.tb-btn:hover{border-color:var(--border-light);color:var(--text-secondary);background:var(--bg-hover)}
+.tb-btn .material-symbols-outlined{font-size:15px;font-variation-settings:'wght' 300}
+
+/* ═══ Main content: two-column ═══ */
+.goal-layout{flex:1;display:flex;overflow:hidden}
+
+/* ── Left: Goal Selection ── */
+.goal-left{
+  flex:1;overflow-y:auto;padding:32px 40px 48px;
+  display:flex;flex-direction:column;align-items:center;
+  min-width:0;
+}
+.goal-left::-webkit-scrollbar{width:5px}
+.goal-left::-webkit-scrollbar-track{background:transparent}
+.goal-left::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.gl-inner{width:100%;max-width:620px}
+
+/* Step indicator */
+.step-bar{display:flex;align-items:center;gap:0;margin-bottom:28px}
+.step{display:flex;align-items:center;gap:6px}
+.step .s-num{
+  width:22px;height:22px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;
+  border:1.5px solid var(--border);color:var(--text-muted);
+  transition:all 200ms;
+}
+.step.active .s-num{background:var(--accent);border-color:var(--accent);color:#fff}
+.step.done .s-num{background:var(--success);border-color:var(--success);color:#fff}
+.step .s-label{font-size:11px;font-weight:500;color:var(--text-muted);transition:color 200ms}
+.step.active .s-label{color:var(--text-primary);font-weight:600}
+.step.done .s-label{color:var(--success)}
+.step-line{flex:1;height:1px;background:var(--border);margin:0 8px}
+.step-line.done-line{background:var(--success)}
+
+.gl-title{font-size:20px;font-weight:700;letter-spacing:-0.03em;margin-bottom:4px}
+.gl-subtitle{font-size:13px;color:var(--text-tertiary);margin-bottom:24px;line-height:1.5}
+
+/* Goal cards grid */
+.goal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:24px}
+
+.goal-card{
+  padding:16px;border-radius:var(--radius-lg);
+  border:1.5px solid var(--border);background:var(--bg-surface);
+  cursor:pointer;transition:all 180ms;position:relative;overflow:hidden;
+}
+.goal-card:hover{border-color:var(--border-light);background:var(--bg-raised);transform:translateY(-1px)}
+.goal-card.selected{border-color:var(--accent);background:var(--accent-glow);box-shadow:0 0 20px rgba(59,130,246,0.06)}
+.goal-card.selected::after{
+  content:'';position:absolute;top:10px;right:10px;
+  width:18px;height:18px;border-radius:50%;
+  background:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+}
+
+.goal-card .gc-icon{
+  width:36px;height:36px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:10px;transition:transform 200ms;
+}
+.goal-card:hover .gc-icon{transform:scale(1.05)}
+.goal-card .gc-icon .material-symbols-outlined{font-size:19px;color:#fff;font-variation-settings:'FILL' 1}
+
+.goal-card .gc-title{font-size:13.5px;font-weight:650;color:var(--text-primary);letter-spacing:-0.01em;margin-bottom:3px}
+.goal-card .gc-desc{font-size:11.5px;color:var(--text-tertiary);line-height:1.5}
+
+/* Checkmark overlay for selected */
+.goal-card .gc-check{
+  position:absolute;top:10px;right:10px;
+  width:18px;height:18px;border-radius:50%;
+  background:var(--accent);display:none;
+  align-items:center;justify-content:center;
+}
+.goal-card.selected .gc-check{display:flex}
+.goal-card .gc-check .material-symbols-outlined{font-size:12px;color:#fff;font-variation-settings:'FILL' 1,'wght' 600}
+
+/* Custom goal input */
+.custom-goal{margin-bottom:24px}
+.custom-goal label{font-size:10.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:4px}
+.custom-goal textarea{
+  width:100%;padding:10px 12px;min-height:64px;resize:vertical;
+  background:var(--bg-surface);border:1px solid var(--border);
+  border-radius:var(--radius-md);color:var(--text-primary);
+  font-size:13px;font-family:inherit;line-height:1.5;
+  outline:none;transition:border-color 200ms;
+}
+.custom-goal textarea::placeholder{color:var(--text-muted)}
+.custom-goal textarea:focus{border-color:var(--accent)}
+.custom-goal .cg-hint{font-size:10px;color:var(--text-muted);margin-top:4px;display:flex;align-items:center;gap:3px}
+.custom-goal .cg-hint .material-symbols-outlined{font-size:12px}
+
+/* Case details row */
+.case-details{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;
+}
+.cd-field{display:flex;flex-direction:column;gap:3px}
+.cd-field label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em}
+.cd-field input,.cd-field select{
+  padding:7px 10px;background:var(--bg-surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);color:var(--text-primary);font-size:12px;
+  font-family:inherit;outline:none;transition:border-color 150ms;
+}
+.cd-field input:focus,.cd-field select:focus{border-color:var(--accent)}
+.cd-field select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235e606d' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.cd-field select option{background:var(--bg-elevated);color:var(--text-primary)}
+
+/* ── Right: Plan Preview ── */
+.goal-right{
+  width:400px;background:var(--bg-surface);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;
+  transition:opacity 300ms;
+}
+
+.gr-header{
+  padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0;
+  display:flex;align-items:center;gap:6px;
+}
+.gr-header .material-symbols-outlined{font-size:16px;color:var(--accent);font-variation-settings:'FILL' 1}
+.gr-header .grh-title{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted)}
+.gr-header .grh-live{
+  margin-left:auto;display:flex;align-items:center;gap:4px;
+  font-size:9.5px;font-weight:550;color:var(--success);
+}
+.gr-header .grh-dot{width:5px;height:5px;background:var(--success);border-radius:50%;animation:pulse-dot 2s ease-in-out infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
+
+.gr-scroll{flex:1;overflow-y:auto;padding:0}
+.gr-scroll::-webkit-scrollbar{width:4px}
+.gr-scroll::-webkit-scrollbar-track{background:transparent}
+.gr-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* Plan sections */
+.plan-sec{padding:14px 18px;border-bottom:1px solid var(--border)}
+.plan-sec:last-child{border-bottom:none}
+
+.ps-title{
+  font-size:10px;font-weight:650;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;
+  display:flex;align-items:center;gap:5px;
+}
+.ps-title .material-symbols-outlined{font-size:14px;font-variation-settings:'wght' 300}
+
+/* Objective */
+.obj-text{
+  font-size:15px;font-weight:600;color:var(--text-primary);
+  line-height:1.4;letter-spacing:-0.01em;
+  padding:10px 14px;background:var(--bg-raised);border:1px solid var(--border);
+  border-radius:var(--radius-md);border-left:3px solid var(--accent);
+}
+
+/* Capability pills */
+.cap-list{display:flex;flex-direction:column;gap:4px}
+.cap-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;border-radius:var(--radius-sm);
+  background:var(--bg-raised);border:1px solid var(--border);
+  transition:all 100ms;
+}
+.cap-item:hover{border-color:var(--border-light)}
+.cap-item .ci-icon{
+  width:24px;height:24px;border-radius:5px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.cap-item .ci-icon .material-symbols-outlined{font-size:13px;color:#fff;font-variation-settings:'FILL' 1}
+.cap-item .ci-name{font-size:11.5px;font-weight:550;color:var(--text-primary)}
+.cap-item .ci-desc{font-size:10px;color:var(--text-muted)}
+.cap-item .ci-auto{
+  margin-left:auto;font-size:8.5px;font-weight:600;
+  text-transform:uppercase;letter-spacing:0.04em;
+  padding:2px 5px;border-radius:2px;flex-shrink:0;
+}
+.cap-item .ci-auto.auto{color:var(--success);background:var(--success-bg);border:1px solid var(--success-border)}
+.cap-item .ci-auto.review{color:var(--high);background:var(--high-bg);border:1px solid var(--high-border)}
+
+/* Deliverables */
+.del-list{display:flex;flex-direction:column;gap:3px}
+.del-item{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 0;font-size:11.5px;color:var(--text-secondary);
+}
+.del-item .material-symbols-outlined{font-size:14px;color:var(--accent);font-variation-settings:'FILL' 1,'wght' 400}
+
+/* Processing estimate */
+.est-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.est-card{
+  padding:10px 12px;border-radius:var(--radius-sm);
+  background:var(--bg-raised);border:1px solid var(--border);
+  text-align:center;
+}
+.est-card .ec-val{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;color:var(--text-primary);margin-bottom:2px}
+.est-card .ec-label{font-size:9.5px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em}
+.est-card .ec-val.accent{color:var(--accent)}
+.est-card .ec-val.success{color:var(--success)}
+
+/* Start button */
+.gr-footer{
+  padding:14px 18px;border-top:1px solid var(--border);
+  flex-shrink:0;display:flex;flex-direction:column;gap:8px;
+}
+
+.start-btn{
+  width:100%;padding:11px 0;border-radius:var(--radius-md);
+  background:var(--accent);color:#fff;border:none;
+  font-size:13.5px;font-weight:650;font-family:inherit;
+  cursor:pointer;transition:all 180ms;letter-spacing:-0.01em;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.start-btn:hover{background:var(--accent-dim);box-shadow:0 0 20px rgba(59,130,246,0.15)}
+.start-btn .material-symbols-outlined{font-size:18px;font-variation-settings:'wght' 500}
+.start-btn:disabled{opacity:0.3;cursor:not-allowed}
+
+.start-hint{font-size:10px;color:var(--text-muted);text-align:center;display:flex;align-items:center;justify-content:center;gap:3px}
+.start-hint .material-symbols-outlined{font-size:12px}
+
+/* Empty plan state */
+.plan-empty{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:40px;text-align:center;
+}
+.plan-empty .material-symbols-outlined{font-size:40px;color:var(--text-muted);font-variation-settings:'wght' 100;margin-bottom:10px}
+.plan-empty .pe-title{font-size:13px;font-weight:550;color:var(--text-tertiary);margin-bottom:4px}
+.plan-empty .pe-desc{font-size:11.5px;color:var(--text-muted);line-height:1.5}
+
+/* ═══ Animations ═══ */
+@keyframes slideUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.plan-sec{animation:slideUp 200ms ease both}
+.plan-sec:nth-child(2){animation-delay:50ms}
+.plan-sec:nth-child(3){animation-delay:100ms}
+.plan-sec:nth-child(4){animation-delay:150ms}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand"><div class="bi"><span class="material-symbols-outlined">shield</span></div><span class="bt">AEGIS</span></div>
+    <div class="ss">
+      <div class="sl">Platform</div>
+      <a class="si a" href="index.html"><span class="material-symbols-outlined">folder_managed</span>Investigations<span class="bd">12</span></a>
+      <a class="si" href="workspace.html"><span class="material-symbols-outlined">work</span>Workspace</a>
+      <a class="si" href="#"><span class="material-symbols-outlined">inventory_2</span>Evidence Library</a>
+      <a class="si" href="knowledge-graph.html"><span class="material-symbols-outlined">hub</span>Knowledge Graph</a>
+      <a class="si" href="timeline.html"><span class="material-symbols-outlined">timeline</span>Timeline</a>
+      <a class="si" href="search.html"><span class="material-symbols-outlined">search</span>Search</a>
+    </div>
+    <div class="ss">
+      <div class="sl">Operations</div>
+      <a class="si" href="review.html"><span class="material-symbols-outlined">task_alt</span>Review Queue<span class="bd al">3</span></a>
+      <a class="si" href="processing.html"><span class="material-symbols-outlined">monitoring</span>Processing</a>
+      <a class="si" href="report.html"><span class="material-symbols-outlined">description</span>Reports</a>
+    </div>
+    <div class="sf"><div class="su"><div class="av">SC</div><div><div class="un">SSA Sarah Chen</div><div class="ur">Senior Analyst</div></div></div></div>
+  </aside>
+
+  <div class="main">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="bc">
+        <span class="d">Investigations</span><span class="s">/</span>
+        <span class="c">New Investigation</span>
+      </div>
+      <div class="tb-right">
+        <button class="tb-btn"><span class="material-symbols-outlined">draft</span>Save as Draft</button>
+        <button class="tb-btn"><span class="material-symbols-outlined">content_copy</span>Use Template</button>
+      </div>
+    </header>
+
+    <div class="goal-layout">
+
+      <!-- Left: Goal Selection -->
+      <div class="goal-left">
+        <div class="gl-inner">
+
+          <!-- Progress steps -->
+          <div class="step-bar">
+            <div class="step active"><span class="s-num">1</span><span class="s-label">Define Objective</span></div>
+            <div class="step-line"></div>
+            <div class="step"><span class="s-num">2</span><span class="s-label">Upload Evidence</span></div>
+            <div class="step-line"></div>
+            <div class="step"><span class="s-num">3</span><span class="s-label">Review Plan</span></div>
+            <div class="step-line"></div>
+            <div class="step"><span class="s-num">4</span><span class="s-label">Begin Analysis</span></div>
+          </div>
+
+          <div class="gl-title">What are you investigating?</div>
+          <div class="gl-subtitle">Select an investigation objective. AEGIS will automatically determine the right analysis capabilities and build an investigation plan.</div>
+
+          <!-- Goal Cards -->
+          <div class="goal-grid">
+
+            <div class="goal-card selected" data-goal="vehicle" onclick="selectGoal(this)">
+              <div class="gc-check"><span class="material-symbols-outlined">check</span></div>
+              <div class="gc-icon" style="background:var(--accent)"><span class="material-symbols-outlined">directions_car</span></div>
+              <div class="gc-title">Vehicle Identification</div>
+              <div class="gc-desc">Identify everyone connected to a vehicle. License plates, owners, passengers, locations visited.</div>
+            </div>
+
+            <div class="goal-card" data-goal="movement" onclick="selectGoal(this)">
+              <div class="gc-check"><span class="material-symbols-outlined">check</span></div>
+              <div class="gc-icon" style="background:var(--high)"><span class="material-symbols-outlined">route</span></div>
+              <div class="gc-title">Track Movement</div>
+              <div class="gc-desc">Reconstruct a subject's movement pattern from GPS, CCTV, cell tower, and transaction data.</div>
+            </div>
+
+            <div class="goal-card" data-goal="relationships" onclick="selectGoal(this)">
+              <div class="gc-check"><span class="material-symbols-outlined">check</span></div>
+              <div class="gc-icon" style="background:var(--purple)"><span class="material-symbols-outlined">hub</span></div>
+              <div class="gc-title">Find Relationships</div>
+              <div class="gc-desc">Map connections between people, organizations, accounts, and devices from evidence.</div>
+            </div>
+
+            <div class="goal-card" data-goal="victims" onclick="selectGoal(this)">
+              <div class="gc-check"><span class="material-symbols-outlined">check</span></div>
+              <div class="gc-icon" style="background:var(--critical)"><span class="material-symbols-outlined">group</span></div>
+              <div class="gc-title">Identify Victims</div>
+              <div class="gc-desc">Detect and identify individuals in imagery, video, or communications content.</div>
+            </div>
+
+            <div class="goal-card" data-goal="devices" onclick="selectGoal(this)">
+              <div class="gc-check"><span class="material-symbols-outlined">check</span></div>
+              <div class="gc-icon" style="background:var(--cyan)"><span class="material-symbols-outlined">devices</span></div>
+              <div class="gc-title">Locate Devices</div>
+              <div class="gc-desc">Triangulate device positions from network logs, GPS pings, WiFi probes, and tower data.</div>
+            </div>
+
+            <div class="goal-card" data-goal="financial" onclick="selectGoal(this)">
+              <div class="gc-check"><span class="material-symbols-outlined">check</span></div>
+              <div class="gc-icon" style="background:var(--emerald)"><span class="material-symbols-outlined">account_balance</span></div>
+              <div class="gc-title">Financial Activity</div>
+              <div class="gc-desc">Analyze transactions, account flows, structuring patterns, and beneficial ownership.</div>
+            </div>
+
+          </div>
+
+          <!-- Custom goal -->
+          <div class="custom-goal">
+            <label for="customGoal">Or describe your objective</label>
+            <textarea id="customGoal" placeholder="e.g., Determine who was present at Warehouse B between Oct 14-27 and what vehicles were used..."></textarea>
+            <div class="cg-hint"><span class="material-symbols-outlined">info</span>Free-text objectives are analyzed to determine the optimal investigation strategy.</div>
+          </div>
+
+          <!-- Case details -->
+          <div class="case-details">
+            <div class="cd-field">
+              <label>Case Name</label>
+              <input type="text" value="Operation Nightfall" placeholder="Enter case name..."/>
+            </div>
+            <div class="cd-field">
+              <label>Priority</label>
+              <select>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium" selected>Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            <div class="cd-field">
+              <label>Lead Investigator</label>
+              <input type="text" value="SSA Sarah Chen"/>
+            </div>
+            <div class="cd-field">
+              <label>Classification</label>
+              <select>
+                <option>Law Enforcement Sensitive</option>
+                <option>For Official Use Only</option>
+                <option>Sensitive But Unclassified</option>
+                <option>Unclassified</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right: Investigation Plan Preview -->
+      <div class="goal-right" id="planPanel">
+
+        <div class="gr-header">
+          <span class="material-symbols-outlined">auto_awesome</span>
+          <span class="grh-title">Investigation Plan</span>
+          <div class="grh-live"><span class="grh-dot"></span>Live Preview</div>
+        </div>
+
+        <div class="gr-scroll" id="planScroll">
+
+          <!-- Objective -->
+          <div class="plan-sec">
+            <div class="ps-title"><span class="material-symbols-outlined">flag</span>Investigation Objective</div>
+            <div class="obj-text" id="objText">Identify all persons and entities connected to a target vehicle. Extract license plates, determine registered owners, locate passengers, and map every location the vehicle visited.</div>
+          </div>
+
+          <!-- AI Capabilities -->
+          <div class="plan-sec">
+            <div class="ps-title"><span class="material-symbols-outlined">memory</span>Analysis Capabilities</div>
+            <div class="cap-list" id="capList">
+              <div class="cap-item">
+                <div class="ci-icon" style="background:var(--accent)"><span class="material-symbols-outlined">visibility</span></div>
+                <div><div class="ci-name">Vehicle Detection</div><div class="ci-desc">Make, model, color, contour matching</div></div>
+                <span class="ci-auto auto">Auto</span>
+              </div>
+              <div class="cap-item">
+                <div class="ci-icon" style="background:var(--cyan)"><span class="material-symbols-outlined">text_fields</span></div>
+                <div><div class="ci-name">License Plate OCR</div><div class="ci-desc">Plate extraction and database lookup</div></div>
+                <span class="ci-auto auto">Auto</span>
+              </div>
+              <div class="cap-item">
+                <div class="ci-icon" style="background:var(--orange)"><span class="material-symbols-outlined">person_search</span></div>
+                <div><div class="ci-name">Person Detection</div><div class="ci-desc">Face, gait, and clothing analysis</div></div>
+                <span class="ci-auto auto">Auto</span>
+              </div>
+              <div class="cap-item">
+                <div class="ci-icon" style="background:var(--high)"><span class="material-symbols-outlined">location_on</span></div>
+                <div><div class="ci-name">GPS & Location Analysis</div><div class="ci-desc">Geospatial correlation and trajectory</div></div>
+                <span class="ci-auto auto">Auto</span>
+              </div>
+              <div class="cap-item">
+                <div class="ci-icon" style="background:var(--purple)"><span class="material-symbols-outlined">hub</span></div>
+                <div><div class="ci-name">Relationship Mapping</div><div class="ci-desc">Entity linking and graph construction</div></div>
+                <span class="ci-auto auto">Auto</span>
+              </div>
+              <div class="cap-item">
+                <div class="ci-icon" style="background:var(--emerald)"><span class="material-symbols-outlined">database</span></div>
+                <div><div class="ci-name">Cross-Case Search</div><div class="ci-desc">Match against existing investigations</div></div>
+                <span class="ci-auto review">Review</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Deliverables -->
+          <div class="plan-sec">
+            <div class="ps-title"><span class="material-symbols-outlined">checklist</span>Expected Deliverables</div>
+            <div class="del-list" id="delList">
+              <div class="del-item"><span class="material-symbols-outlined">hub</span>Knowledge graph of all connected entities</div>
+              <div class="del-item"><span class="material-symbols-outlined">timeline</span>Chronological timeline of vehicle sightings</div>
+              <div class="del-item"><span class="material-symbols-outlined">map</span>Location heat map with movement trail</div>
+              <div class="del-item"><span class="material-symbols-outlined">person</span>List of all identified persons near vehicle</div>
+              <div class="del-item"><span class="material-symbols-outlined">compare_arrows</span>Cross-case matches from prior investigations</div>
+              <div class="del-item"><span class="material-symbols-outlined">task_alt</span>AI findings with confidence scores for review</div>
+              <div class="del-item"><span class="material-symbols-outlined">description</span>Draft investigation report</div>
+            </div>
+          </div>
+
+          <!-- Estimates -->
+          <div class="plan-sec">
+            <div class="ps-title"><span class="material-symbols-outlined">schedule</span>Estimated Processing</div>
+            <div class="est-grid" id="estGrid">
+              <div class="est-card"><div class="ec-val accent">~3 min</div><div class="ec-label">Per 100 images</div></div>
+              <div class="est-card"><div class="ec-val accent">~8 min</div><div class="ec-label">Per video hour</div></div>
+              <div class="est-card"><div class="ec-val success">6</div><div class="ec-label">Capabilities</div></div>
+              <div class="est-card"><div class="ec-val success">7</div><div class="ec-label">Deliverables</div></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Start button -->
+        <div class="gr-footer">
+          <button class="start-btn" id="startBtn">
+            <span class="material-symbols-outlined">play_arrow</span>
+            Start Investigation
+          </button>
+          <div class="start-hint"><span class="material-symbols-outlined">info</span>You'll upload evidence in the next step</div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const goalData = {
+  vehicle: {
+    obj: 'Identify all persons and entities connected to a target vehicle. Extract license plates, determine registered owners, locate passengers, and map every location the vehicle visited.',
+    caps: [
+      { icon: 'visibility', bg: 'var(--accent)', name: 'Vehicle Detection', desc: 'Make, model, color, contour matching', mode: 'auto' },
+      { icon: 'text_fields', bg: 'var(--cyan)', name: 'License Plate OCR', desc: 'Plate extraction and database lookup', mode: 'auto' },
+      { icon: 'person_search', bg: 'var(--orange)', name: 'Person Detection', desc: 'Face, gait, and clothing analysis', mode: 'auto' },
+      { icon: 'location_on', bg: 'var(--high)', name: 'GPS & Location Analysis', desc: 'Geospatial correlation and trajectory', mode: 'auto' },
+      { icon: 'hub', bg: 'var(--purple)', name: 'Relationship Mapping', desc: 'Entity linking and graph construction', mode: 'auto' },
+      { icon: 'database', bg: 'var(--emerald)', name: 'Cross-Case Search', desc: 'Match against existing investigations', mode: 'review' },
+    ],
+    dels: ['Knowledge graph of all connected entities', 'Chronological timeline of vehicle sightings', 'Location heat map with movement trail', 'List of all identified persons near vehicle', 'Cross-case matches from prior investigations', 'AI findings with confidence scores for review', 'Draft investigation report'],
+    est: { t1: '~3 min', l1: 'Per 100 images', t2: '~8 min', l2: 'Per video hour' }
+  },
+  movement: {
+    obj: 'Reconstruct a subject\'s movement history using GPS data, CCTV footage, cell tower records, and financial transaction locations. Build a complete trajectory timeline.',
+    caps: [
+      { icon: 'location_on', bg: 'var(--high)', name: 'GPS Trajectory Analysis', desc: 'Reconstruct routes from coordinate data', mode: 'auto' },
+      { icon: 'cell_tower', bg: 'var(--orange)', name: 'Cell Tower Triangulation', desc: 'Approximate location from tower pings', mode: 'auto' },
+      { icon: 'visibility', bg: 'var(--accent)', name: 'CCTV Person Tracking', desc: 'Track individual across camera network', mode: 'auto' },
+      { icon: 'schedule', bg: 'var(--cyan)', name: 'Temporal Correlation', desc: 'Align events across data sources', mode: 'auto' },
+      { icon: 'map', bg: 'var(--emerald)', name: 'Geofence Detection', desc: 'Identify dwell zones and anomalies', mode: 'auto' },
+      { icon: 'pattern', bg: 'var(--purple)', name: 'Behavioral Pattern Analysis', desc: 'Detect routines and deviations', mode: 'review' },
+    ],
+    dels: ['Movement timeline with precise coordinates', 'Heat map of frequently visited locations', 'Dwell time analysis at each location', 'Trajectory anomaly report', 'Cross-referenced CCTV footage index', 'AI findings for investigator review', 'Draft investigation report'],
+    est: { t1: '~2 min', l1: 'Per 1K GPS points', t2: '~5 min', l2: 'Per video hour' }
+  },
+  relationships: {
+    obj: 'Map all connections between people, organizations, financial accounts, phone numbers, email addresses, and devices found within the evidence. Build a comprehensive knowledge graph.',
+    caps: [
+      { icon: 'hub', bg: 'var(--purple)', name: 'Entity Extraction', desc: 'Names, orgs, accounts from documents', mode: 'auto' },
+      { icon: 'link', bg: 'var(--accent)', name: 'Relationship Inference', desc: 'Determine connection type and strength', mode: 'auto' },
+      { icon: 'chat', bg: 'var(--orange)', name: 'Communication Analysis', desc: 'Parse call logs, emails, messages', mode: 'auto' },
+      { icon: 'account_balance', bg: 'var(--emerald)', name: 'Financial Flow Mapping', desc: 'Track money between accounts', mode: 'auto' },
+      { icon: 'groups', bg: 'var(--cyan)', name: 'Community Detection', desc: 'Identify clusters and key nodes', mode: 'auto' },
+      { icon: 'compare_arrows', bg: 'var(--high)', name: 'Cross-Case Matching', desc: 'Link entities across investigations', mode: 'review' },
+    ],
+    dels: ['Interactive knowledge graph', 'Entity directory with all attributes', 'Relationship strength matrix', 'Community structure analysis', 'Key node and broker identification', 'AI findings for investigator review', 'Draft investigation report'],
+    est: { t1: '~1 min', l1: 'Per 50 documents', t2: '~4 min', l2: 'Per 1K records' }
+  },
+  victims: {
+    obj: 'Detect and identify individuals present in imagery, video, or communications. Cross-reference against known databases and build a victim registry with associated evidence.',
+    caps: [
+      { icon: 'face', bg: 'var(--critical)', name: 'Face Detection & Analysis', desc: 'Detect, cluster, and estimate demographics', mode: 'auto' },
+      { icon: 'person_search', bg: 'var(--orange)', name: 'Person Re-identification', desc: 'Track same person across sources', mode: 'auto' },
+      { icon: 'image_search', bg: 'var(--accent)', name: 'Scene Classification', desc: 'Categorize environments and contexts', mode: 'auto' },
+      { icon: 'text_fields', bg: 'var(--cyan)', name: 'Text & Document OCR', desc: 'Extract identifying information', mode: 'auto' },
+      { icon: 'record_voice_over', bg: 'var(--high)', name: 'Audio Transcription', desc: 'Transcribe and analyze speech', mode: 'auto' },
+      { icon: 'verified_user', bg: 'var(--emerald)', name: 'Identity Verification', desc: 'Match against reference databases', mode: 'review' },
+    ],
+    dels: ['Victim registry with all detected individuals', 'Evidence-linked identity profiles', 'Scene context analysis', 'Communication transcripts', 'Cross-reference results', 'AI findings for investigator review', 'Draft investigation report'],
+    est: { t1: '~4 min', l1: 'Per 100 images', t2: '~12 min', l2: 'Per video hour' }
+  },
+  devices: {
+    obj: 'Determine the physical locations of target devices using network logs, GPS pings, WiFi probe requests, Bluetooth signals, and cell tower triangulation data.',
+    caps: [
+      { icon: 'cell_tower', bg: 'var(--cyan)', name: 'Cell Tower Triangulation', desc: 'Multi-tower position estimation', mode: 'auto' },
+      { icon: 'wifi', bg: 'var(--accent)', name: 'WiFi Probe Analysis', desc: 'SSID history and AP matching', mode: 'auto' },
+      { icon: 'bluetooth', bg: 'var(--purple)', name: 'Bluetooth Proximity', desc: 'Nearby device detection', mode: 'auto' },
+      { icon: 'location_on', bg: 'var(--high)', name: 'GPS Coordinate Mapping', desc: 'Precise location from device logs', mode: 'auto' },
+      { icon: 'devices', bg: 'var(--orange)', name: 'Device Fingerprinting', desc: 'MAC, IMEI, serial identification', mode: 'auto' },
+      { icon: 'hub', bg: 'var(--emerald)', name: 'Device-Person Linking', desc: 'Associate devices with owners', mode: 'review' },
+    ],
+    dels: ['Device location timeline', 'Proximity event log', 'WiFi network history', 'Device-to-person association map', 'Co-location analysis', 'AI findings for investigator review', 'Draft investigation report'],
+    est: { t1: '~1 min', l1: 'Per 10K log entries', t2: '~3 min', l2: 'Per device profile' }
+  },
+  financial: {
+    obj: 'Analyze financial transactions, identify structuring patterns, trace fund flows between accounts, and determine beneficial ownership structures across entities.',
+    caps: [
+      { icon: 'account_balance', bg: 'var(--emerald)', name: 'Transaction Analysis', desc: 'Pattern detection and anomaly flagging', mode: 'auto' },
+      { icon: 'trending_up', bg: 'var(--high)', name: 'Structuring Detection', desc: 'Identify CTR avoidance patterns', mode: 'auto' },
+      { icon: 'swap_horiz', bg: 'var(--accent)', name: 'Fund Flow Tracing', desc: 'Follow money across accounts', mode: 'auto' },
+      { icon: 'corporate_fare', bg: 'var(--purple)', name: 'Beneficial Ownership', desc: 'Uncover shell company structures', mode: 'auto' },
+      { icon: 'text_fields', bg: 'var(--cyan)', name: 'Document OCR', desc: 'Extract data from financial records', mode: 'auto' },
+      { icon: 'gavel', bg: 'var(--orange)', name: 'Regulatory Matching', desc: 'SAR/CTR threshold analysis', mode: 'review' },
+    ],
+    dels: ['Transaction flow diagram', 'Anomaly report with flagged transactions', 'Beneficial ownership chart', 'Structuring pattern analysis', 'Account relationship map', 'AI findings for investigator review', 'Draft investigation report'],
+    est: { t1: '~30 sec', l1: 'Per 1K transactions', t2: '~2 min', l2: 'Per account profile' }
+  },
+};
+
+const delIcons = ['hub', 'timeline', 'map', 'person', 'compare_arrows', 'task_alt', 'description'];
+
+function selectGoal(card) {
+  document.querySelectorAll('.goal-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  const goal = card.dataset.goal;
+  updatePlan(goal);
+}
+
+function updatePlan(goal) {
+  const d = goalData[goal];
+  if (!d) return;
+
+  // Objective
+  document.getElementById('objText').textContent = d.obj;
+
+  // Capabilities
+  const capList = document.getElementById('capList');
+  capList.innerHTML = d.caps.map(c => `
+    <div class="cap-item">
+      <div class="ci-icon" style="background:${c.bg}"><span class="material-symbols-outlined">${c.icon}</span></div>
+      <div><div class="ci-name">${c.name}</div><div class="ci-desc">${c.desc}</div></div>
+      <span class="ci-auto ${c.mode}">${c.mode === 'auto' ? 'Auto' : 'Review'}</span>
+    </div>
+  `).join('');
+
+  // Deliverables
+  const delList = document.getElementById('delList');
+  delList.innerHTML = d.dels.map((del, i) => `
+    <div class="del-item"><span class="material-symbols-outlined">${delIcons[i] || 'check_circle'}</span>${del}</div>
+  `).join('');
+
+  // Estimates
+  const estGrid = document.getElementById('estGrid');
+  estGrid.innerHTML = `
+    <div class="est-card"><div class="ec-val accent">${d.est.t1}</div><div class="ec-label">${d.est.l1}</div></div>
+    <div class="est-card"><div class="ec-val accent">${d.est.t2}</div><div class="ec-label">${d.est.l2}</div></div>
+    <div class="est-card"><div class="ec-val success">${d.caps.length}</div><div class="ec-label">Capabilities</div></div>
+    <div class="est-card"><div class="ec-val success">${d.dels.length}</div><div class="ec-label">Deliverables</div></div>
+  `;
+
+  // Re-trigger animations
+  document.querySelectorAll('.plan-sec').forEach((sec, i) => {
+    sec.style.animation = 'none';
+    sec.offsetHeight;
+    sec.style.animation = `slideUp 200ms ease both ${i * 50}ms`;
+  });
+}
+
+// Start button
+document.getElementById('startBtn').addEventListener('click', () => {
+  const btn = document.getElementById('startBtn');
+  btn.innerHTML = '<span class="material-symbols-outlined">check</span> Investigation Created';
+  btn.style.background = 'var(--success)';
+  btn.disabled = true;
+
+  // Advance step
+  const steps = document.querySelectorAll('.step');
+  steps[0].classList.remove('active');
+  steps[0].classList.add('done');
+  steps[0].querySelector('.s-num').innerHTML = '<span class="material-symbols-outlined" style="font-size:12px;font-variation-settings:\'FILL\' 1">check</span>';
+  steps[1].classList.add('active');
+  document.querySelector('.step-line').classList.add('done-line');
+});
+</script>
+<script src="nav.js"></script>`n</body>
+</html>
+

@@ -1,0 +1,92 @@
+"""
+AEGIS PoC — In-Memory State Store
+Architecture v2: Per-investigation scoping, audit trail, pipeline progress.
+"""
+
+from models import (
+    Investigation, EvidenceItem, Finding, GraphNode, GraphEdge,
+    TimelineEvent, InvestigationPlan, Report, AuditEntry, PipelineProgress
+)
+
+# ─── Global State ────────────────────────────────────────────
+
+investigations: dict[str, Investigation] = {}
+evidence: dict[str, EvidenceItem] = {}
+findings: dict[str, Finding] = {}
+graph_nodes: dict[str, GraphNode] = {}
+graph_edges: dict[str, GraphEdge] = {}
+timeline_events: dict[str, TimelineEvent] = {}
+plans: dict[str, InvestigationPlan] = {}
+reports: dict[str, Report] = {}
+audit_log: list[AuditEntry] = []
+pipeline_progress: dict[str, PipelineProgress] = {}  # investigation_id → progress
+
+# SSE subscribers — investigation_id → list of asyncio.Queue
+sse_queues: dict[str, list] = {}
+
+
+# ─── Helpers ─────────────────────────────────────────────────
+
+def get_investigation(inv_id: str) -> Investigation | None:
+    return investigations.get(inv_id)
+
+def get_evidence_for_investigation(inv_id: str) -> list[EvidenceItem]:
+    return [e for e in evidence.values() if e.investigation_id == inv_id]
+
+def get_findings_for_investigation(inv_id: str) -> list[Finding]:
+    return [f for f in findings.values() if f.investigation_id == inv_id]
+
+def get_graph_for_investigation(inv_id: str) -> dict:
+    """Return nodes and edges scoped to a specific investigation."""
+    nodes = [n for n in graph_nodes.values() if n.investigation_id == inv_id]
+    edges = [e for e in graph_edges.values() if e.investigation_id == inv_id]
+    return {"nodes": nodes, "edges": edges}
+
+def get_timeline_for_investigation(inv_id: str) -> list[TimelineEvent]:
+    events = [t for t in timeline_events.values() if t.investigation_id == inv_id]
+    return sorted(events, key=lambda e: e.timestamp if e.timestamp else "")
+
+def get_audit_for_investigation(inv_id: str) -> list[AuditEntry]:
+    return [a for a in audit_log if a.investigation_id == inv_id]
+
+
+# ─── Audit ───────────────────────────────────────────────────
+
+def log_audit(
+    investigation_id: str,
+    actor: str,
+    action: str,
+    entity_type: str = "",
+    entity_id: str = "",
+    details: str = "",
+    metadata: dict | None = None,
+):
+    """Append an immutable audit entry. Every action goes through here."""
+    entry = AuditEntry(
+        investigation_id=investigation_id,
+        actor=actor,
+        action=action,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        details=details,
+        metadata=metadata or {},
+    )
+    audit_log.append(entry)
+    # Also broadcast as SSE event
+    broadcast_sse(investigation_id, {
+        "type": "audit",
+        "data": {"action": action, "actor": actor, "details": details},
+    })
+    return entry
+
+
+# ─── SSE ─────────────────────────────────────────────────────
+
+def broadcast_sse(inv_id: str, event: dict):
+    """Push an event to all SSE subscribers for an investigation."""
+    import asyncio
+    for q in sse_queues.get(inv_id, []):
+        try:
+            q.put_nowait(event)
+        except asyncio.QueueFull:
+            pass

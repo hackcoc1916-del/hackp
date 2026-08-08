@@ -1,0 +1,677 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AEGIS — Human Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@350;400;450;500;550;600;700&family=JetBrains+Mono:wght@400;450;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-base:#09090b;--bg-surface:#0f1115;--bg-raised:#151619;--bg-elevated:#1a1b1f;
+  --bg-hover:#1f2024;--bg-active:#25262b;--bg-deep:#050507;
+  --border:#232429;--border-light:#2a2b31;
+  --text-primary:#ececee;--text-secondary:#9395a1;--text-tertiary:#5e606d;--text-muted:#44464f;
+  --accent:#3b82f6;--accent-dim:#2563eb;--accent-glow:rgba(59,130,246,0.08);--accent-subtle:rgba(59,130,246,0.12);--accent-border:rgba(59,130,246,0.25);
+  --critical:#ef4444;--critical-bg:rgba(239,68,68,0.06);--critical-border:rgba(239,68,68,0.2);
+  --success:#22c55e;--success-bg:rgba(34,197,94,0.06);--success-border:rgba(34,197,94,0.2);
+  --high:#f59e0b;--high-bg:rgba(245,158,11,0.06);--high-border:rgba(245,158,11,0.2);
+  --purple:#a855f7;--purple-bg:rgba(168,85,247,0.06);--purple-border:rgba(168,85,247,0.2);
+  --cyan:#06b6d4;--orange:#f97316;
+  --sidebar-w:232px;--topbar-h:44px;--radius-sm:5px;--radius-md:7px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,system-ui,sans-serif;background:var(--bg-base);color:var(--text-primary);height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased;font-feature-settings:'cv02','cv03','cv04','cv11'}
+.shell{display:flex;height:100vh}
+
+/* ═══ Sidebar ═══ */
+.sidebar{width:var(--sidebar-w);background:var(--bg-surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;user-select:none}
+.sidebar-brand{height:var(--topbar-h);display:flex;align-items:center;padding:0 16px;gap:10px;border-bottom:1px solid var(--border)}
+.sidebar-brand .bi{width:24px;height:24px;background:var(--accent);border-radius:5px;display:flex;align-items:center;justify-content:center}
+.sidebar-brand .bi .material-symbols-outlined{font-size:14px;color:#fff;font-variation-settings:'FILL' 1}
+.sidebar-brand .bt{font-size:13px;font-weight:650;letter-spacing:-0.02em}
+.ss{padding:6px 8px 0}.sl{font-size:10px;font-weight:600;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;padding:8px 8px 4px}
+.si{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;font-weight:450;color:var(--text-secondary);transition:all 100ms;text-decoration:none;position:relative}
+.si:hover{background:var(--bg-hover);color:var(--text-primary)}
+.si.a{background:var(--accent-subtle);color:var(--accent);font-weight:550}
+.si.a::before{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:2px;height:14px;background:var(--accent);border-radius:0 2px 2px 0}
+.si .material-symbols-outlined{font-size:17px;font-variation-settings:'wght' 300,'FILL' 0}
+.si.a .material-symbols-outlined{font-variation-settings:'wght' 400,'FILL' 1}
+.si .bd{margin-left:auto;font-size:9.5px;font-weight:600;color:var(--text-tertiary);background:var(--bg-active);padding:0 5px;border-radius:3px;height:15px;display:flex;align-items:center}
+.si .bd.al{background:var(--critical-bg);color:var(--critical);border:1px solid var(--critical-border)}
+.sf{margin-top:auto;border-top:1px solid var(--border);padding:8px}
+.su{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--radius-sm);cursor:pointer}
+.su .av{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent-dim),var(--accent));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
+.su .un{font-size:12px;font-weight:550}.su .ur{font-size:10px;color:var(--text-muted)}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ═══ Topbar ═══ */
+.topbar{height:var(--topbar-h);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;background:var(--bg-surface)}
+.bc{display:flex;align-items:center;gap:6px;font-size:13px}
+.bc .d{color:var(--text-tertiary)}.bc .s{color:var(--text-muted);font-size:11px}.bc .c{color:var(--text-primary);font-weight:550}
+.cb{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);background:var(--bg-elevated);border:1px solid var(--border);padding:2px 6px;border-radius:3px;margin-left:4px}
+
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.queue-badge{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:550;color:var(--high);background:var(--high-bg);border:1px solid var(--high-border);padding:4px 10px;border-radius:var(--radius-sm)}
+.queue-badge .material-symbols-outlined{font-size:14px;font-variation-settings:'FILL' 1}
+
+.nav-btns{display:flex;gap:2px}
+.nav-btn{height:28px;padding:0 8px;display:flex;align-items:center;gap:3px;border-radius:var(--radius-sm);border:1px solid var(--border);background:none;color:var(--text-tertiary);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;transition:all 100ms}
+.nav-btn:hover{border-color:var(--border-light);color:var(--text-secondary);background:var(--bg-hover)}
+.nav-btn .material-symbols-outlined{font-size:14px;font-variation-settings:'wght' 400}
+
+/* ═══ Queue strip ═══ */
+.queue-strip{
+  display:flex;align-items:center;gap:4px;
+  padding:6px 16px;border-bottom:1px solid var(--border);
+  background:var(--bg-surface);flex-shrink:0;overflow-x:auto;
+}
+.queue-strip::-webkit-scrollbar{height:0}
+
+.q-item{
+  display:flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:var(--radius-sm);
+  border:1px solid var(--border);background:var(--bg-raised);
+  cursor:pointer;transition:all 100ms;flex-shrink:0;
+  font-size:11px;font-weight:475;color:var(--text-secondary);
+}
+.q-item:hover{border-color:var(--border-light);background:var(--bg-elevated)}
+.q-item.active-q{border-color:var(--accent-border);background:var(--accent-glow);color:var(--accent);font-weight:550}
+.q-item.done-q{opacity:0.4;text-decoration:line-through}
+.q-item .q-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.q-item .q-id{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted)}
+.q-item .q-conf{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500}
+
+.q-sep{width:1px;height:20px;background:var(--border);flex-shrink:0;margin:0 4px}
+.q-label{font-size:9.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;flex-shrink:0;margin-right:4px}
+
+/* ═══ Split View ═══ */
+.split-view{flex:1;display:flex;overflow:hidden}
+
+/* ── LEFT: Evidence ── */
+.evidence-pane{
+  flex:1;display:flex;flex-direction:column;
+  border-right:1px solid var(--border);min-width:0;
+  background:var(--bg-deep);
+}
+
+.ev-toolbar{
+  height:36px;display:flex;align-items:center;padding:0 12px;gap:6px;
+  border-bottom:1px solid var(--border);background:var(--bg-surface);flex-shrink:0;
+}
+.ev-toolbar .ev-label{font-size:9.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em}
+.ev-toolbar .ev-file{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-secondary);margin-left:6px}
+.ev-toolbar .ev-tabs{display:flex;gap:1px;margin-left:auto}
+.ev-tab{
+  padding:4px 8px;font-size:10.5px;font-weight:500;color:var(--text-muted);
+  border-radius:3px;cursor:pointer;transition:all 80ms;border:none;background:none;font-family:inherit;
+}
+.ev-tab:hover{color:var(--text-secondary);background:var(--bg-hover)}
+.ev-tab.act{color:var(--accent);background:var(--accent-glow)}
+
+.ev-viewer{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+  background:radial-gradient(circle at 50% 50%,rgba(59,130,246,0.01) 0%,transparent 60%),var(--bg-deep);
+}
+
+.ev-viewer .img-wrap{position:relative;max-width:90%;max-height:90%}
+.ev-viewer .img-wrap img{max-width:100%;max-height:calc(100vh - 200px);object-fit:contain;border:1px solid var(--border);border-radius:2px}
+
+/* Detection annotation */
+.det-box{
+  position:absolute;border:1.5px solid var(--accent);border-radius:2px;
+  background:rgba(59,130,246,0.06);cursor:pointer;transition:all 150ms;
+}
+.det-box:hover{border-width:2.5px;background:rgba(59,130,246,0.1)}
+.det-box .det-tag{
+  position:absolute;top:-18px;left:-1px;
+  font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:500;
+  padding:1px 5px;border-radius:2px;white-space:nowrap;
+  background:var(--accent);color:#fff;
+}
+.det-box.person-det{border-color:var(--orange);background:rgba(249,115,22,0.05)}
+.det-box.person-det .det-tag{background:var(--orange)}
+
+/* Evidence metadata bar */
+.ev-meta-bar{
+  padding:8px 12px;border-top:1px solid var(--border);background:var(--bg-surface);
+  display:flex;gap:16px;flex-shrink:0;flex-wrap:wrap;
+}
+.ev-meta{display:flex;align-items:center;gap:4px}
+.ev-meta .em-k{font-size:9.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em}
+.ev-meta .em-v{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-secondary)}
+.ev-meta .em-v.ok{color:var(--success)}
+
+/* ── RIGHT: Analysis ── */
+.analysis-pane{
+  width:480px;display:flex;flex-direction:column;
+  background:var(--bg-surface);flex-shrink:0;overflow:hidden;
+}
+
+.an-header{
+  padding:14px 18px 10px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.an-header .an-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
+.an-header .an-finding-id{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted)}
+.an-header .an-status{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;padding:2px 7px;border-radius:3px}
+.an-header .an-status.pending{color:var(--high);background:var(--high-bg);border:1px solid var(--high-border)}
+.an-header .an-status.approved{color:var(--success);background:var(--success-bg);border:1px solid var(--success-border)}
+.an-header .an-title{font-size:16px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;margin-bottom:4px}
+.an-header .an-subtitle{font-size:12px;color:var(--text-tertiary)}
+
+/* Confidence meter */
+.conf-meter{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 18px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.conf-meter .cm-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;width:72px;flex-shrink:0}
+.conf-meter .cm-bar-wrap{flex:1;height:6px;background:var(--bg-active);border-radius:3px;overflow:hidden;position:relative}
+.conf-meter .cm-fill{height:100%;border-radius:3px;transition:width 600ms ease}
+.conf-meter .cm-ticks{position:absolute;top:-1px;bottom:-1px;left:0;right:0;display:flex;justify-content:space-between;padding:0 1px}
+.conf-meter .cm-tick{width:1px;background:var(--bg-base);opacity:0.4}
+.conf-meter .cm-val{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;width:44px;text-align:right;flex-shrink:0}
+
+/* Scrollable analysis body */
+.an-scroll{flex:1;overflow-y:auto;padding:0}
+.an-scroll::-webkit-scrollbar{width:4px}
+.an-scroll::-webkit-scrollbar-track{background:transparent}
+.an-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.an-sec{padding:14px 18px;border-bottom:1px solid var(--border)}
+.an-sec-title{
+  font-size:10px;font-weight:600;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;
+  display:flex;align-items:center;gap:5px;
+}
+.an-sec-title .material-symbols-outlined{font-size:14px;font-variation-settings:'wght' 300}
+
+/* Reasoning block */
+.reasoning{
+  font-size:12.5px;color:var(--text-secondary);line-height:1.65;
+}
+.reasoning p{margin-bottom:8px}
+.reasoning strong{color:var(--text-primary);font-weight:600}
+.reasoning .hl{color:var(--accent);font-weight:550}
+.reasoning .mono-hl{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg-elevated);padding:1px 4px;border-radius:2px;border:1px solid var(--border)}
+
+/* Evidence list */
+.ev-list{display:flex;flex-direction:column;gap:3px}
+.ev-card{
+  display:flex;align-items:center;gap:8px;padding:6px 8px;
+  border-radius:4px;border:1px solid var(--border);background:var(--bg-raised);
+  cursor:pointer;transition:all 100ms;
+}
+.ev-card:hover{border-color:var(--border-light);background:var(--bg-elevated)}
+.ev-card.active-ev{border-color:var(--accent-border);background:var(--accent-glow)}
+.ev-card .evc-icon{width:32px;height:32px;border-radius:4px;background:var(--bg-base);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.ev-card .evc-icon img{width:100%;height:100%;object-fit:cover;opacity:0.7}
+.ev-card:hover .evc-icon img{opacity:1}
+.ev-card .evc-icon .material-symbols-outlined{font-size:16px;color:var(--text-muted);font-variation-settings:'wght' 200}
+.ev-card .evc-name{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-secondary)}
+.ev-card .evc-desc{font-size:10px;color:var(--text-muted)}
+.ev-card .evc-match{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;padding:1px 5px;border-radius:2px;flex-shrink:0}
+.ev-card .evc-match.primary{color:var(--accent);background:var(--accent-glow);border:1px solid var(--accent-border)}
+.ev-card .evc-match.supporting{color:var(--text-tertiary);background:var(--bg-elevated);border:1px solid var(--border)}
+
+/* Alternative hypotheses */
+.alt-hypo{
+  padding:8px 10px;border-radius:var(--radius-sm);
+  border:1px solid var(--border);background:var(--bg-raised);
+  margin-bottom:4px;
+}
+.alt-hypo .ah-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.alt-hypo .ah-label{font-size:11px;font-weight:550;color:var(--text-primary)}
+.alt-hypo .ah-prob{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500}
+.alt-hypo .ah-desc{font-size:11px;color:var(--text-tertiary);line-height:1.5}
+.alt-hypo .ah-bar{width:100%;height:3px;background:var(--bg-active);border-radius:2px;margin-top:6px;overflow:hidden}
+.alt-hypo .ah-fill{height:100%;border-radius:2px}
+
+/* Investigator comment input */
+.comment-box{
+  display:flex;flex-direction:column;gap:6px;
+}
+.comment-input{
+  width:100%;padding:8px 10px;
+  background:var(--bg-base);border:1px solid var(--border);
+  border-radius:var(--radius-sm);color:var(--text-primary);
+  font-size:12px;font-family:inherit;resize:vertical;min-height:56px;
+  outline:none;transition:border-color 150ms;
+}
+.comment-input::placeholder{color:var(--text-muted)}
+.comment-input:focus{border-color:var(--accent)}
+.comment-hint{font-size:10px;color:var(--text-muted);display:flex;align-items:center;gap:3px}
+.comment-hint .material-symbols-outlined{font-size:12px}
+
+/* ═══ Action Bar (pinned bottom) ═══ */
+.action-bar{
+  padding:12px 18px;border-top:1px solid var(--border);
+  background:var(--bg-surface);flex-shrink:0;
+  display:flex;flex-direction:column;gap:8px;
+}
+
+.action-meta{
+  display:flex;align-items:center;gap:8px;
+  font-size:10.5px;color:var(--text-muted);
+}
+.action-meta .material-symbols-outlined{font-size:14px;font-variation-settings:'wght' 300}
+.action-meta .am-warn{color:var(--high);font-weight:550;display:flex;align-items:center;gap:3px}
+.action-meta .am-warn .material-symbols-outlined{font-size:13px;font-variation-settings:'FILL' 1}
+
+.action-buttons{display:flex;gap:6px}
+
+.act-btn{
+  flex:1;padding:8px 0;border-radius:var(--radius-sm);
+  font-size:11.5px;font-weight:600;font-family:inherit;
+  cursor:pointer;transition:all 150ms;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  letter-spacing:0.01em;
+}
+.act-btn .material-symbols-outlined{font-size:15px;font-variation-settings:'wght' 500}
+
+.act-btn.approve-btn{
+  background:var(--success);color:#fff;border:none;
+}
+.act-btn.approve-btn:hover{background:#16a34a;box-shadow:0 0 12px rgba(34,197,94,0.2)}
+
+.act-btn.reject-btn{
+  background:none;color:var(--critical);border:1px solid var(--critical-border);
+}
+.act-btn.reject-btn:hover{background:var(--critical-bg)}
+
+.act-btn.modify-btn{
+  background:none;color:var(--text-secondary);border:1px solid var(--border);
+}
+.act-btn.modify-btn:hover{background:var(--bg-hover);color:var(--text-primary)}
+
+.act-btn.analyze-btn{
+  background:none;color:var(--purple);border:1px solid var(--purple-border);
+}
+.act-btn.analyze-btn:hover{background:var(--purple-bg)}
+
+/* ═══ Decision history ═══ */
+.decision-log{display:flex;flex-direction:column;gap:4px}
+.dl-item{
+  display:flex;align-items:flex-start;gap:8px;
+  padding:6px 8px;border-radius:4px;font-size:11px;
+}
+.dl-item .dl-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.dl-item .dl-icon .material-symbols-outlined{font-size:12px;color:#fff;font-variation-settings:'FILL' 1}
+.dl-item .dl-body{flex:1}
+.dl-item .dl-action{font-weight:550;color:var(--text-primary)}
+.dl-item .dl-desc{color:var(--text-tertiary);margin-top:1px}
+.dl-item .dl-time{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted);flex-shrink:0;margin-top:2px}
+
+/* Animation */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.an-sec{animation:fadeIn 200ms ease both}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand"><div class="bi"><span class="material-symbols-outlined">shield</span></div><span class="bt">AEGIS</span></div>
+    <div class="ss">
+      <div class="sl">Platform</div>
+      <a class="si" href="index.html"><span class="material-symbols-outlined">folder_managed</span>Investigations<span class="bd">12</span></a>
+      <a class="si" href="workspace.html"><span class="material-symbols-outlined">work</span>Workspace</a>
+      <a class="si" href="#"><span class="material-symbols-outlined">inventory_2</span>Evidence Library</a>
+      <a class="si" href="knowledge-graph.html"><span class="material-symbols-outlined">hub</span>Knowledge Graph</a>
+      <a class="si" href="timeline.html"><span class="material-symbols-outlined">timeline</span>Timeline</a>
+      <a class="si" href="#"><span class="material-symbols-outlined">search</span>Search</a>
+    </div>
+    <div class="ss">
+      <div class="sl">Operations</div>
+      <a class="si a" href="#"><span class="material-symbols-outlined">task_alt</span>Review Queue<span class="bd al">3</span></a>
+      <a class="si" href="processing.html"><span class="material-symbols-outlined">monitoring</span>Processing</a>
+      <a class="si" href="#"><span class="material-symbols-outlined">description</span>Reports</a>
+    </div>
+    <div class="sf"><div class="su"><div class="av">SC</div><div><div class="un">SSA Sarah Chen</div><div class="ur">Senior Analyst</div></div></div></div>
+  </aside>
+
+  <div class="main">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="bc">
+        <span class="d">Operation Nightfall</span><span class="s">/</span>
+        <span class="c">Human Review</span><span class="cb">INV-8492</span>
+      </div>
+      <div class="tb-right">
+        <div class="queue-badge">
+          <span class="material-symbols-outlined">pending_actions</span>
+          3 findings awaiting review
+        </div>
+        <div class="nav-btns">
+          <button class="nav-btn" title="Previous finding"><span class="material-symbols-outlined">navigate_before</span></button>
+          <button class="nav-btn" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);padding:0 10px">1 / 3</button>
+          <button class="nav-btn" title="Next finding"><span class="material-symbols-outlined">navigate_next</span></button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Review Queue Strip -->
+    <div class="queue-strip">
+      <span class="q-label">Queue</span>
+      <div class="q-item active-q">
+        <span class="q-dot" style="background:var(--success)"></span>
+        Vehicle Identification
+        <span class="q-id">FND-0847</span>
+        <span class="q-conf" style="color:var(--success)">97%</span>
+      </div>
+      <div class="q-item">
+        <span class="q-dot" style="background:var(--high)"></span>
+        Person Detection
+        <span class="q-id">FND-0848</span>
+        <span class="q-conf" style="color:var(--high)">72%</span>
+      </div>
+      <div class="q-item">
+        <span class="q-dot" style="background:var(--purple)"></span>
+        Cross-Case Intelligence
+        <span class="q-id">FND-0849</span>
+        <span class="q-conf" style="color:var(--success)">91%</span>
+      </div>
+      <span class="q-sep"></span>
+      <span class="q-label" style="color:var(--success)">Reviewed</span>
+      <div class="q-item done-q">
+        <span class="q-dot" style="background:var(--text-muted)"></span>
+        Metadata Anomaly
+        <span class="q-id">FND-0846</span>
+      </div>
+      <div class="q-item done-q">
+        <span class="q-dot" style="background:var(--text-muted)"></span>
+        Scene Classification
+        <span class="q-id">FND-0845</span>
+      </div>
+    </div>
+
+    <!-- Split View -->
+    <div class="split-view">
+
+      <!-- LEFT: Evidence Viewer -->
+      <div class="evidence-pane">
+        <div class="ev-toolbar">
+          <span class="ev-label">Evidence</span>
+          <span class="ev-file">IMG_023_alley_cam.jpg</span>
+          <div class="ev-tabs">
+            <button class="ev-tab act">Image</button>
+            <button class="ev-tab">Metadata</button>
+            <button class="ev-tab">Hex</button>
+          </div>
+        </div>
+
+        <div class="ev-viewer">
+          <div class="img-wrap">
+            <img alt="CCTV footage of silver sedan in dark alley with timestamp overlay" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOJdGU7MJ2kT3gGxjtE6UthjAgqgZvh-B8oZw3S8x_wuCeSWhoHBLyllm-4fco6iUbuqIEuWVqUdmlEjPs64HGp2qE935Ces9v2mI5sxxIsOGhjHf5KbFt6qTjiJiU5lmcK56HsptyVq85_2kIDXUwms1f-gzPynSosBITRFfdACQnyKMzbhZt16VdH18bEzECyW73u_qv1Su4HtP2UJKcXha58BeTmEBTGJXsAuLCb8L_XKWlgmPK6g"/>
+            <!-- Vehicle detection -->
+            <div class="det-box" style="top:38%;left:28%;width:48%;height:38%">
+              <span class="det-tag">VEHICLE · TOYOTA COROLLA · 97%</span>
+            </div>
+            <!-- Person detection -->
+            <div class="det-box person-det" style="top:22%;left:14%;width:12%;height:42%">
+              <span class="det-tag">PERSON · UNKNOWN_1 · 72%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ev-meta-bar">
+          <div class="ev-meta"><span class="em-k">Timestamp</span><span class="em-v">2023-10-27T03:14:22Z</span></div>
+          <div class="ev-meta"><span class="em-k">Source</span><span class="em-v">CAM_N_34A</span></div>
+          <div class="ev-meta"><span class="em-k">GPS</span><span class="em-v">40.7128°N, 74.0060°W</span></div>
+          <div class="ev-meta"><span class="em-k">SHA-256</span><span class="em-v">e99a18c428cb…</span></div>
+          <div class="ev-meta"><span class="em-k">Integrity</span><span class="em-v ok">✓ Verified</span></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Analysis Pane -->
+      <div class="analysis-pane">
+
+        <div class="an-header">
+          <div class="an-top">
+            <span class="an-finding-id">FND-0847 · Generated by vision.detection</span>
+            <span class="an-status pending">Pending Review</span>
+          </div>
+          <div class="an-title">Silver Toyota Corolla identified at Sector 4G</div>
+          <div class="an-subtitle">Matches watchlist entry WL-4491 · Partial plate 7X-A4**</div>
+        </div>
+
+        <!-- Confidence Meter -->
+        <div class="conf-meter">
+          <span class="cm-label">Confidence</span>
+          <div class="cm-bar-wrap">
+            <div class="cm-fill" style="width:97%;background:linear-gradient(90deg,var(--accent),var(--success))"></div>
+          </div>
+          <span class="cm-val" style="color:var(--success)">97%</span>
+        </div>
+
+        <div class="an-scroll">
+
+          <!-- Reasoning -->
+          <div class="an-sec">
+            <div class="an-sec-title"><span class="material-symbols-outlined">psychology</span>AI Reasoning</div>
+            <div class="reasoning">
+              <p>Vehicle detected in frame at coordinates <span class="mono-hl">(480, 340)</span> to <span class="mono-hl">(1420, 780)</span>. Profile contour analysis matches <strong>Toyota Corolla (2019-2023)</strong> body shape with <strong>97% confidence</strong>.</p>
+              <p>Color histogram analysis confirms <strong>silver/light gray</strong> exterior across <strong>3 consecutive frames</strong> (IMG_023, IMG_024, VID_alley_01 @ 00:12).</p>
+              <p>License plate OCR extracted partial text <span class="hl">7X-A4**</span> matching watchlist entry <strong>WL-4491</strong>. Last two characters obscured by shadow and camera angle. Plate region confidence: <strong>84%</strong>.</p>
+              <p>Cross-reference with <strong>INV-8301</strong> (Echo Syndicate, closed) reveals same vehicle model and partial plate observed near Warehouse B on <strong>Oct 14, 2023</strong>.</p>
+            </div>
+          </div>
+
+          <!-- Supporting Evidence -->
+          <div class="an-sec">
+            <div class="an-sec-title"><span class="material-symbols-outlined">link</span>Supporting Evidence</div>
+            <div class="ev-list">
+              <div class="ev-card active-ev">
+                <div class="evc-icon"><img alt="CCTV" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOJdGU7MJ2kT3gGxjtE6UthjAgqgZvh-B8oZw3S8x_wuCeSWhoHBLyllm-4fco6iUbuqIEuWVqUdmlEjPs64HGp2qE935Ces9v2mI5sxxIsOGhjHf5KbFt6qTjiJiU5lmcK56HsptyVq85_2kIDXUwms1f-gzPynSosBITRFfdACQnyKMzbhZt16VdH18bEzECyW73u_qv1Su4HtP2UJKcXha58BeTmEBTGJXsAuLCb8L_XKWlgmPK6g"/></div>
+                <div><div class="evc-name">IMG_023_alley_cam.jpg</div><div class="evc-desc">03:14:22Z · Vehicle + plate visible</div></div>
+                <span class="evc-match primary">Primary</span>
+              </div>
+              <div class="ev-card">
+                <div class="evc-icon"><span class="material-symbols-outlined">image</span></div>
+                <div><div class="evc-name">IMG_024_parking_east.jpg</div><div class="evc-desc">03:15:01Z · Vehicle exiting frame</div></div>
+                <span class="evc-match supporting">Supporting</span>
+              </div>
+              <div class="ev-card">
+                <div class="evc-icon"><span class="material-symbols-outlined">videocam</span></div>
+                <div><div class="evc-name">VID_alley_cam_01.mp4</div><div class="evc-desc">03:12:00Z · Continuous footage, vehicle enters at 00:12</div></div>
+                <span class="evc-match supporting">Supporting</span>
+              </div>
+              <div class="ev-card">
+                <div class="evc-icon"><span class="material-symbols-outlined">description</span></div>
+                <div><div class="evc-name">watchlist_WL-4491.json</div><div class="evc-desc">Active BOLO · Silver sedan, partial plate 7X-A4</div></div>
+                <span class="evc-match supporting">Cross-ref</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Alternative Hypotheses -->
+          <div class="an-sec">
+            <div class="an-sec-title"><span class="material-symbols-outlined">alt_route</span>Alternative Hypotheses</div>
+            <div class="alt-hypo">
+              <div class="ah-head">
+                <span class="ah-label">H1: Correct vehicle identification</span>
+                <span class="ah-prob" style="color:var(--success)">p = 0.88</span>
+              </div>
+              <div class="ah-desc">The detected vehicle is the target Toyota Corolla associated with the suspect. Plate match and visual profile support this hypothesis.</div>
+              <div class="ah-bar"><div class="ah-fill" style="width:88%;background:var(--success)"></div></div>
+            </div>
+            <div class="alt-hypo">
+              <div class="ah-head">
+                <span class="ah-label">H2: Similar vehicle, different owner</span>
+                <span class="ah-prob" style="color:var(--high)">p = 0.09</span>
+              </div>
+              <div class="ah-desc">A different silver Corolla with coincidentally similar plate. Toyota Corolla is the 4th most common sedan in the metro area.</div>
+              <div class="ah-bar"><div class="ah-fill" style="width:9%;background:var(--high)"></div></div>
+            </div>
+            <div class="alt-hypo">
+              <div class="ah-head">
+                <span class="ah-label">H3: Misidentification due to lighting</span>
+                <span class="ah-prob" style="color:var(--text-muted)">p = 0.03</span>
+              </div>
+              <div class="ah-desc">Low-light conditions may cause misclassification of vehicle make/model. Profile contour less reliable below 50 lux.</div>
+              <div class="ah-bar"><div class="ah-fill" style="width:3%;background:var(--text-muted)"></div></div>
+            </div>
+          </div>
+
+          <!-- Decision History -->
+          <div class="an-sec">
+            <div class="an-sec-title"><span class="material-symbols-outlined">history</span>Activity</div>
+            <div class="decision-log">
+              <div class="dl-item">
+                <div class="dl-icon" style="background:var(--accent)"><span class="material-symbols-outlined">psychology</span></div>
+                <div class="dl-body">
+                  <div class="dl-action">AI generated finding FND-0847</div>
+                  <div class="dl-desc">vision.detection capability · 97% confidence · 3 evidence sources</div>
+                </div>
+                <span class="dl-time">03:14Z</span>
+              </div>
+              <div class="dl-item">
+                <div class="dl-icon" style="background:var(--purple)"><span class="material-symbols-outlined">compare_arrows</span></div>
+                <div class="dl-body">
+                  <div class="dl-action">Cross-case reference identified</div>
+                  <div class="dl-desc">Linked to INV-8301 (Echo Syndicate) via plate match</div>
+                </div>
+                <span class="dl-time">03:15Z</span>
+              </div>
+              <div class="dl-item">
+                <div class="dl-icon" style="background:var(--high)"><span class="material-symbols-outlined">flag</span></div>
+                <div class="dl-body">
+                  <div class="dl-action">Flagged for human review</div>
+                  <div class="dl-desc">High-impact finding requires investigator approval before graph update</div>
+                </div>
+                <span class="dl-time">03:15Z</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Investigator Comment -->
+          <div class="an-sec">
+            <div class="an-sec-title"><span class="material-symbols-outlined">edit_note</span>Investigator Notes</div>
+            <div class="comment-box">
+              <textarea class="comment-input" placeholder="Add your assessment, reasoning, or additional context..." spellcheck="false"></textarea>
+              <div class="comment-hint">
+                <span class="material-symbols-outlined">info</span>
+                Your notes will be recorded in the audit log and included in the investigation report.
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+          <div class="action-meta">
+            <span class="material-symbols-outlined">gavel</span>
+            Your decision is legally binding and will update the knowledge graph.
+            <span class="am-warn"><span class="material-symbols-outlined">warning</span>Irreversible</span>
+          </div>
+          <div class="action-buttons">
+            <button class="act-btn approve-btn" id="approveBtn">
+              <span class="material-symbols-outlined">check</span>
+              Approve Finding
+            </button>
+            <button class="act-btn reject-btn" id="rejectBtn">
+              <span class="material-symbols-outlined">close</span>
+              Reject
+            </button>
+            <button class="act-btn modify-btn">
+              <span class="material-symbols-outlined">edit</span>
+              Modify
+            </button>
+            <button class="act-btn analyze-btn">
+              <span class="material-symbols-outlined">science</span>
+              Re-Analyze
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Queue item click
+  document.querySelectorAll('.q-item:not(.done-q)').forEach(q => {
+    q.addEventListener('click', () => {
+      document.querySelectorAll('.q-item').forEach(i => i.classList.remove('active-q'));
+      q.classList.add('active-q');
+    });
+  });
+
+  // Evidence card click → swap viewer
+  document.querySelectorAll('.ev-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.ev-card').forEach(c => c.classList.remove('active-ev'));
+      card.classList.add('active-ev');
+    });
+  });
+
+  // Approve flow
+  document.getElementById('approveBtn').addEventListener('click', () => {
+    const btn = document.getElementById('approveBtn');
+    const status = document.querySelector('.an-status');
+    const qItem = document.querySelector('.q-item.active-q');
+
+    btn.innerHTML = '<span class="material-symbols-outlined">check</span> Approved';
+    btn.style.opacity = '0.7';
+    btn.style.pointerEvents = 'none';
+
+    status.textContent = 'Approved';
+    status.classList.remove('pending');
+    status.classList.add('approved');
+
+    // Add to decision log
+    const log = document.querySelector('.decision-log');
+    const entry = document.createElement('div');
+    entry.className = 'dl-item';
+    entry.innerHTML = `
+      <div class="dl-icon" style="background:var(--success)"><span class="material-symbols-outlined">verified</span></div>
+      <div class="dl-body">
+        <div class="dl-action">Approved by SSA Sarah Chen</div>
+        <div class="dl-desc">Finding accepted. Knowledge graph will be updated.</div>
+      </div>
+      <span class="dl-time">Now</span>
+    `;
+    log.appendChild(entry);
+
+    if (qItem) {
+      qItem.classList.remove('active-q');
+      qItem.classList.add('done-q');
+      qItem.style.opacity = '0.4';
+      // Auto-advance to next
+      const next = document.querySelector('.q-item:not(.done-q):not(.active-q)');
+      if (next) setTimeout(() => next.classList.add('active-q'), 600);
+    }
+  });
+
+  // Reject
+  document.getElementById('rejectBtn').addEventListener('click', () => {
+    const status = document.querySelector('.an-status');
+    status.textContent = 'Rejected';
+    status.style.background = 'var(--critical-bg)';
+    status.style.color = 'var(--critical)';
+    status.style.borderColor = 'var(--critical-border)';
+
+    const qItem = document.querySelector('.q-item.active-q');
+    if (qItem) {
+      qItem.classList.remove('active-q');
+      qItem.classList.add('done-q');
+      qItem.style.opacity = '0.4';
+    }
+  });
+
+  // Evidence tabs
+  document.querySelectorAll('.ev-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.ev-tab').forEach(t => t.classList.remove('act'));
+      tab.classList.add('act');
+    });
+  });
+</script>
+<script src="nav.js"></script>`n</body>
+</html>
+

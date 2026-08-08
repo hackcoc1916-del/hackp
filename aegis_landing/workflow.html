@@ -1,0 +1,758 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AEGIS — Investigation Workflow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@350;400;450;500;550;600;700;800&family=JetBrains+Mono:wght@400;450;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-base:#09090b;--bg-surface:#0f1115;--bg-raised:#151619;--bg-elevated:#1a1b1f;
+  --bg-hover:#1f2024;--bg-active:#25262b;
+  --border:#232429;--border-light:#2a2b31;
+  --text-primary:#ececee;--text-secondary:#9395a1;--text-tertiary:#5e606d;--text-muted:#44464f;
+  --accent:#3b82f6;--accent-dim:#2563eb;--accent-glow:rgba(59,130,246,0.08);--accent-subtle:rgba(59,130,246,0.12);--accent-border:rgba(59,130,246,0.25);
+  --critical:#ef4444;--critical-bg:rgba(239,68,68,0.06);--critical-border:rgba(239,68,68,0.2);
+  --success:#22c55e;--success-bg:rgba(34,197,94,0.06);--success-border:rgba(34,197,94,0.2);
+  --high:#f59e0b;--high-bg:rgba(245,158,11,0.06);--high-border:rgba(245,158,11,0.2);
+  --purple:#a855f7;--purple-bg:rgba(168,85,247,0.06);--purple-border:rgba(168,85,247,0.2);
+  --cyan:#06b6d4;--orange:#f97316;--pink:#ec4899;--emerald:#10b981;
+  --sidebar-w:232px;--topbar-h:44px;--radius-sm:5px;--radius-md:7px;--radius-lg:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,system-ui,sans-serif;background:var(--bg-base);color:var(--text-primary);height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased;font-feature-settings:'cv02','cv03','cv04','cv11'}
+.shell{display:flex;height:100vh}
+
+/* Sidebar */
+.sidebar{width:var(--sidebar-w);background:var(--bg-surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;user-select:none}
+.sidebar-brand{height:var(--topbar-h);display:flex;align-items:center;padding:0 16px;gap:10px;border-bottom:1px solid var(--border)}
+.sidebar-brand .bi{width:24px;height:24px;background:var(--accent);border-radius:5px;display:flex;align-items:center;justify-content:center}
+.sidebar-brand .bi .material-symbols-outlined{font-size:14px;color:#fff;font-variation-settings:'FILL' 1}
+.sidebar-brand .bt{font-size:13px;font-weight:650;letter-spacing:-0.02em}
+.ss{padding:6px 8px 0}.sl{font-size:10px;font-weight:600;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;padding:8px 8px 4px}
+.si{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;font-weight:450;color:var(--text-secondary);transition:all 100ms;text-decoration:none;position:relative}
+.si:hover{background:var(--bg-hover);color:var(--text-primary)}
+.si.a{background:var(--accent-subtle);color:var(--accent);font-weight:550}
+.si.a::before{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:2px;height:14px;background:var(--accent);border-radius:0 2px 2px 0}
+.si .material-symbols-outlined{font-size:17px;font-variation-settings:'wght' 300,'FILL' 0}
+.si.a .material-symbols-outlined{font-variation-settings:'wght' 400,'FILL' 1}
+.si .bd{margin-left:auto;font-size:9.5px;font-weight:600;color:var(--text-tertiary);background:var(--bg-active);padding:0 5px;border-radius:3px;height:15px;display:flex;align-items:center}
+.si .bd.al{background:var(--critical-bg);color:var(--critical);border:1px solid var(--critical-border)}
+.sf{margin-top:auto;border-top:1px solid var(--border);padding:8px}
+.su{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--radius-sm);cursor:pointer}
+.su .av{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent-dim),var(--accent));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
+.su .un{font-size:12px;font-weight:550}.su .ur{font-size:10px;color:var(--text-muted)}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+.topbar{height:var(--topbar-h);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:8px;flex-shrink:0;background:var(--bg-surface)}
+.bc{display:flex;align-items:center;gap:6px;font-size:13px}
+.bc .d{color:var(--text-tertiary)}.bc .s{color:var(--text-muted);font-size:11px}.bc .c{color:var(--text-primary);font-weight:550}
+.cb{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);background:var(--bg-elevated);border:1px solid var(--border);padding:2px 6px;border-radius:3px;margin-left:4px}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.tb-btn{height:28px;padding:0 10px;display:flex;align-items:center;gap:4px;border-radius:var(--radius-sm);border:1px solid var(--border);background:none;color:var(--text-tertiary);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;transition:all 100ms}
+.tb-btn:hover{border-color:var(--border-light);color:var(--text-secondary);background:var(--bg-hover)}
+.tb-btn .material-symbols-outlined{font-size:15px;font-variation-settings:'wght' 300}
+.demo-badge{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--accent);background:var(--accent-glow);border:1px solid var(--accent-border);padding:4px 10px;border-radius:20px}
+.demo-badge .material-symbols-outlined{font-size:13px;font-variation-settings:'FILL' 1}
+
+/* ═══ Workflow Layout ═══ */
+.wf-layout{flex:1;display:flex;overflow:hidden}
+
+/* ── Pipeline sidebar ── */
+.pipeline{
+  width:280px;background:var(--bg-surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;
+  padding:16px 0;
+}
+.pipeline::-webkit-scrollbar{width:3px}
+.pipeline::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.pipe-label{font-size:9px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;padding:0 16px;margin-bottom:8px}
+
+.pipe-progress{
+  display:flex;align-items:center;gap:6px;padding:0 16px;margin-bottom:14px;
+}
+.pipe-progress .pp-bar{flex:1;height:4px;background:var(--bg-active);border-radius:2px;overflow:hidden}
+.pipe-progress .pp-fill{height:100%;border-radius:2px;background:var(--accent);transition:width 600ms ease}
+.pipe-progress .pp-text{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);flex-shrink:0}
+
+/* Stage items */
+.stage{
+  display:flex;align-items:flex-start;gap:0;padding:0 16px;
+  cursor:pointer;position:relative;
+}
+.stage:last-child .st-connector{display:none}
+
+.st-track{display:flex;flex-direction:column;align-items:center;width:28px;flex-shrink:0;position:relative}
+
+.st-node{
+  width:24px;height:24px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--border);background:var(--bg-base);
+  position:relative;z-index:2;transition:all 250ms;flex-shrink:0;
+}
+.st-node .material-symbols-outlined{font-size:12px;color:var(--text-muted);font-variation-settings:'FILL' 1,'wght' 600;transition:all 250ms}
+
+.st-connector{width:2px;background:var(--border);flex:1;min-height:8px;transition:background 400ms}
+
+/* States */
+.stage.done .st-node{border-color:var(--success);background:var(--success)}
+.stage.done .st-node .material-symbols-outlined{color:#fff;font-size:13px}
+.stage.done .st-connector{background:var(--success)}
+
+.stage.active .st-node{border-color:var(--accent);background:var(--accent);box-shadow:0 0 10px rgba(59,130,246,0.3)}
+.stage.active .st-node .material-symbols-outlined{color:#fff}
+
+.stage.running .st-node{border-color:var(--accent);background:var(--accent);animation:pulse-node 1.5s ease-in-out infinite}
+@keyframes pulse-node{0%,100%{box-shadow:0 0 6px rgba(59,130,246,0.3)}50%{box-shadow:0 0 14px rgba(59,130,246,0.5)}}
+
+.stage.review .st-node{border-color:var(--high);background:var(--high)}
+.stage.review .st-node .material-symbols-outlined{color:#fff}
+
+/* Stage content */
+.st-body{flex:1;padding:0 0 12px 8px;min-width:0}
+.st-title{font-size:12.5px;font-weight:600;color:var(--text-tertiary);transition:color 150ms;letter-spacing:-0.01em}
+.stage.done .st-title,.stage.active .st-title,.stage.running .st-title,.stage.review .st-title{color:var(--text-primary)}
+.st-desc{font-size:10.5px;color:var(--text-muted);margin-top:1px;transition:color 150ms}
+.stage.active .st-desc,.stage.running .st-desc{color:var(--text-tertiary)}
+.st-meta{display:flex;align-items:center;gap:6px;margin-top:4px}
+.st-time{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted)}
+.st-badge{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;padding:1px 5px;border-radius:2px}
+
+/* ── Main detail view ── */
+.stage-detail{
+  flex:1;overflow-y:auto;padding:28px 40px 48px;
+  display:flex;flex-direction:column;align-items:center;
+}
+.stage-detail::-webkit-scrollbar{width:5px}
+.stage-detail::-webkit-scrollbar-track{background:transparent}
+.stage-detail::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.sd-inner{width:100%;max-width:680px}
+
+/* Stage header */
+.sd-header{margin-bottom:24px}
+.sd-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);margin-bottom:4px}
+.sd-title{font-size:22px;font-weight:750;letter-spacing:-0.03em;margin-bottom:4px}
+.sd-subtitle{font-size:13px;color:var(--text-tertiary);line-height:1.5}
+
+/* Stage content blocks */
+.sd-block{
+  padding:16px 18px;background:var(--bg-surface);border:1px solid var(--border);
+  border-radius:var(--radius-md);margin-bottom:10px;
+  animation:fadeSlide 200ms ease both;
+}
+.sd-block:nth-child(2){animation-delay:50ms}
+.sd-block:nth-child(3){animation-delay:100ms}
+.sd-block:nth-child(4){animation-delay:150ms}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.sd-block .sb-title{
+  font-size:10px;font-weight:650;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;
+  display:flex;align-items:center;gap:4px;
+}
+.sd-block .sb-title .material-symbols-outlined{font-size:14px;font-variation-settings:'wght' 300}
+
+/* Data rows */
+.data-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
+.data-row .dr-k{font-size:12px;color:var(--text-tertiary)}
+.data-row .dr-v{font-size:12px;font-weight:550;color:var(--text-primary)}
+.data-row .dr-v.mono{font-family:'JetBrains Mono',monospace;font-size:11px}
+.data-row .dr-v.accent{color:var(--accent)}
+.data-row .dr-v.success{color:var(--success)}
+.data-row .dr-v.critical{color:var(--critical)}
+
+/* Task list */
+.task-list{display:flex;flex-direction:column;gap:3px}
+.task-item{
+  display:flex;align-items:center;gap:8px;padding:6px 8px;
+  border-radius:4px;font-size:12px;
+}
+.task-item .ti-icon{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.task-item .ti-icon .material-symbols-outlined{font-size:12px;color:#fff;font-variation-settings:'FILL' 1}
+.task-item .ti-text{color:var(--text-secondary)}
+.task-item .ti-time{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted)}
+
+/* Evidence grid */
+.ev-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ev-mini{
+  padding:8px;border-radius:4px;background:var(--bg-raised);border:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;
+}
+.ev-mini .material-symbols-outlined{font-size:20px;color:var(--text-muted);font-variation-settings:'wght' 200}
+.ev-mini .em-count{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:var(--text-primary)}
+.ev-mini .em-label{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em}
+
+/* Finding cards */
+.finding-mini{
+  padding:8px 10px;border-radius:4px;border:1px solid var(--border);
+  background:var(--bg-raised);margin-bottom:4px;
+  display:flex;align-items:center;gap:8px;
+}
+.finding-mini .fm-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.finding-mini .fm-text{font-size:11.5px;color:var(--text-secondary);flex:1}
+.finding-mini .fm-conf{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;flex-shrink:0}
+.finding-mini .fm-badge{font-size:8px;font-weight:700;text-transform:uppercase;padding:1px 5px;border-radius:2px;flex-shrink:0}
+
+/* Graph mini */
+.graph-mini{
+  height:140px;background:var(--bg-base);border:1px solid var(--border);
+  border-radius:4px;position:relative;overflow:hidden;
+}
+.graph-mini canvas{width:100%;height:100%}
+
+/* Timeline mini */
+.tl-mini{border-left:2px solid var(--border);padding-left:12px}
+.tl-mini-item{position:relative;margin-bottom:6px}
+.tl-mini-item::before{content:'';position:absolute;left:-16px;top:5px;width:6px;height:6px;border-radius:50%;border:1.5px solid var(--text-muted);background:var(--bg-base)}
+.tl-mini-item.key::before{background:var(--accent);border-color:var(--accent)}
+.tl-mini-date{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted)}
+.tl-mini-text{font-size:11px;color:var(--text-secondary)}
+
+/* Action bar */
+.sd-actions{
+  display:flex;gap:6px;margin-top:16px;
+}
+.sd-btn{
+  flex:1;padding:9px 0;border-radius:var(--radius-md);
+  font-size:12px;font-weight:600;font-family:inherit;
+  cursor:pointer;transition:all 150ms;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+}
+.sd-btn .material-symbols-outlined{font-size:16px;font-variation-settings:'wght' 500}
+.sd-btn.primary{background:var(--accent);color:#fff;border:none}
+.sd-btn.primary:hover{background:var(--accent-dim);box-shadow:0 0 16px rgba(59,130,246,0.15)}
+.sd-btn.secondary{background:none;color:var(--text-secondary);border:1px solid var(--border)}
+.sd-btn.secondary:hover{background:var(--bg-hover);border-color:var(--border-light)}
+.sd-btn.success{background:var(--success);color:#fff;border:none}
+.sd-btn.success:hover{background:#16a34a}
+
+/* Narrator bar */
+.narrator{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;background:var(--accent-glow);border:1px solid var(--accent-border);
+  border-radius:var(--radius-md);margin-bottom:16px;
+}
+.narrator .material-symbols-outlined{font-size:18px;color:var(--accent);font-variation-settings:'FILL' 1;flex-shrink:0}
+.narrator .n-text{font-size:12px;color:var(--text-secondary);line-height:1.5}
+.narrator .n-text strong{color:var(--accent);font-weight:600}
+
+/* Review emphasis */
+.review-banner{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;background:var(--high-bg);border:1px solid var(--high-border);
+  border-radius:var(--radius-md);margin-bottom:16px;
+}
+.review-banner .material-symbols-outlined{font-size:18px;color:var(--high);font-variation-settings:'FILL' 1;flex-shrink:0}
+.review-banner .rb-text{font-size:12px;color:var(--text-secondary);line-height:1.5}
+.review-banner .rb-text strong{color:var(--high);font-weight:600}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand"><div class="bi"><span class="material-symbols-outlined">shield</span></div><span class="bt">AEGIS</span></div>
+    <div class="ss">
+      <div class="sl">Platform</div>
+      <a class="si" href="index.html"><span class="material-symbols-outlined">folder_managed</span>Investigations<span class="bd">12</span></a>
+      <a class="si" href="workspace.html"><span class="material-symbols-outlined">work</span>Workspace</a>
+      <a class="si" href="#"><span class="material-symbols-outlined">inventory_2</span>Evidence Library</a>
+      <a class="si" href="knowledge-graph.html"><span class="material-symbols-outlined">hub</span>Knowledge Graph</a>
+      <a class="si" href="timeline.html"><span class="material-symbols-outlined">timeline</span>Timeline</a>
+      <a class="si" href="search.html"><span class="material-symbols-outlined">search</span>Search</a>
+    </div>
+    <div class="ss">
+      <div class="sl">Operations</div>
+      <a class="si" href="review.html"><span class="material-symbols-outlined">task_alt</span>Review Queue<span class="bd al">3</span></a>
+      <a class="si" href="processing.html"><span class="material-symbols-outlined">monitoring</span>Processing</a>
+      <a class="si" href="report.html"><span class="material-symbols-outlined">description</span>Reports</a>
+    </div>
+    <div class="ss">
+      <div class="sl">Demo</div>
+      <a class="si a" href="#"><span class="material-symbols-outlined">play_circle</span>Workflow Demo</a>
+    </div>
+    <div class="sf"><div class="su"><div class="av">SC</div><div><div class="un">SSA Sarah Chen</div><div class="ur">Senior Analyst</div></div></div></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="bc"><span class="d">AEGIS</span><span class="s">/</span><span class="c">Investigation Workflow</span><span class="cb">DEMO</span></div>
+      <div class="tb-right">
+        <div class="demo-badge"><span class="material-symbols-outlined">play_circle</span>Interactive Demo</div>
+        <button class="tb-btn" id="autoPlayBtn" onclick="toggleAutoPlay()"><span class="material-symbols-outlined">fast_forward</span>Auto-Play</button>
+        <button class="tb-btn" onclick="resetWorkflow()"><span class="material-symbols-outlined">replay</span>Reset</button>
+      </div>
+    </header>
+
+    <div class="wf-layout">
+
+      <!-- Pipeline sidebar -->
+      <div class="pipeline">
+        <div class="pipe-label">Investigation Pipeline</div>
+        <div class="pipe-progress">
+          <div class="pp-bar"><div class="pp-fill" id="progressFill" style="width:0%"></div></div>
+          <span class="pp-text" id="progressText">0 / 9</span>
+        </div>
+
+        <div class="stage active" data-stage="0" onclick="goToStage(0)">
+          <div class="st-track"><div class="st-node"><span class="material-symbols-outlined">add_circle</span></div><div class="st-connector"></div></div>
+          <div class="st-body"><div class="st-title">Create Investigation</div><div class="st-desc">Initialize case file</div><div class="st-meta"><span class="st-time"></span></div></div>
+        </div>
+        <div class="stage" data-stage="1" onclick="goToStage(1)">
+          <div class="st-track"><div class="st-node"><span class="material-symbols-outlined">flag</span></div><div class="st-connector"></div></div>
+          <div class="st-body"><div class="st-title">Define Goal</div><div class="st-desc">Set investigation objective</div><div class="st-meta"><span class="st-time"></span></div></div>
+        </div>
+        <div class="stage" data-stage="2" onclick="goToStage(2)">
+          <div class="st-track"><div class="st-node"><span class="material-symbols-outlined">cloud_upload</span></div><div class="st-connector"></div></div>
+          <div class="st-body"><div class="st-title">Upload Evidence</div><div class="st-desc">Ingest and verify integrity</div><div class="st-meta"><span class="st-time"></span></div></div>
+        </div>
+        <div class="stage" data-stage="3" onclick="goToStage(3)">
+          <div class="st-track"><div class="st-node"><span class="material-symbols-outlined">psychology</span></div><div class="st-connector"></div></div>
+          <div class="st-body"><div class="st-title">AI Processing</div><div class="st-desc">Autonomous analysis pipeline</div><div class="st-meta"><span class="st-time"></span></div></div>
+        </div>
+        <div class="stage" data-stage="4" onclick="goToStage(4)">
+          <div class="st-track"><div class="st-node"><span class="material-symbols-outlined">auto_awesome</span></div><div class="st-connector"></div></div>
+          <div class="st-body"><div class="st-title">Review Findings</div><div class="st-desc">AI-generated intelligence</div><div class="st-meta"><span class="st-time"></span></div></div>
+        </div>
+        <div class="stage" data-stage="5" onclick="goToStage(5)">
+          <div class="st-track"><div class="st-node"><span class="material-symbols-outlined">hub</span></div><div class="st-connector"></div></div>
+          <div class="st-body"><div class="st-title">Knowledge Graph</div><div class="st-desc">Entity relationship map</div><div class="st-meta"><span class="st-time"></span></div></div>
+        </div>
+        <div class="stage" data-stage="6" onclick="goToStage(6)">
+          <div class="st-track"><div class="st-node"><span class="material-symbols-outlined">timeline</span></div><div class="st-connector"></div></div>
+          <div class="st-body"><div class="st-title">Timeline</div><div class="st-desc">Chronological reconstruction</div><div class="st-meta"><span class="st-time"></span></div></div>
+        </div>
+        <div class="stage" data-stage="7" onclick="goToStage(7)">
+          <div class="st-track"><div class="st-node"><span class="material-symbols-outlined">gavel</span></div><div class="st-connector"></div></div>
+          <div class="st-body"><div class="st-title">Human Review</div><div class="st-desc">Investigator decision point</div><div class="st-meta"><span class="st-time"></span></div></div>
+        </div>
+        <div class="stage" data-stage="8" onclick="goToStage(8)">
+          <div class="st-track"><div class="st-node"><span class="material-symbols-outlined">description</span></div><div class="st-connector"></div></div>
+          <div class="st-body"><div class="st-title">Generate Report</div><div class="st-desc">Final deliverable</div><div class="st-meta"><span class="st-time"></span></div></div>
+        </div>
+      </div>
+
+      <!-- Stage detail -->
+      <div class="stage-detail" id="stageDetail"></div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+let currentStage = 0;
+let completedStages = new Set();
+let autoPlayInterval = null;
+
+const stageContent = [
+  // 0: Create Investigation
+  {
+    num: 'Stage 1 of 9',
+    title: 'Create Investigation',
+    subtitle: 'A new case is opened in the system. Every investigation begins with a case file that maintains chain of custody from the first second.',
+    narrator: 'Director Vance has ordered a new investigation. AEGIS creates a <strong>tamper-proof case file</strong> with full audit logging from this moment forward.',
+    blocks: [
+      { title: 'flag · Case Details', rows: [
+        ['Case Name', 'Operation Nightfall', ''],
+        ['Case Number', 'INV-8492', 'mono'],
+        ['Priority', 'Critical', 'critical'],
+        ['Classification', 'Law Enforcement Sensitive', ''],
+        ['Lead Investigator', 'SSA Sarah Chen', ''],
+        ['Opened', '2023-10-14T09:00:00Z', 'mono'],
+      ]},
+      { title: 'shield · Chain of Custody', rows: [
+        ['Audit Log', 'Initialized', 'success'],
+        ['Hash Algorithm', 'SHA-256', 'mono'],
+        ['Evidence Counter', '0 items', 'mono'],
+        ['Access Control', '3 authorized users', ''],
+      ]},
+    ],
+    action: 'Create Case File',
+    actionIcon: 'add_circle',
+    link: 'goal.html',
+  },
+  // 1: Define Goal
+  {
+    num: 'Stage 2 of 9',
+    title: 'Define Investigation Goal',
+    subtitle: 'The investigator defines what they need to find. AEGIS automatically determines the right AI capabilities — no configuration required.',
+    narrator: 'SSA Chen selects <strong>"Vehicle Identification"</strong> as the primary objective. AEGIS will automatically deploy vehicle detection, plate OCR, person detection, GPS analysis, and relationship mapping.',
+    blocks: [
+      { title: 'flag · Investigation Objective', custom: 'objective' },
+      { title: 'memory · Auto-Selected Capabilities', custom: 'capabilities' },
+    ],
+    action: 'Confirm Objective',
+    actionIcon: 'check',
+    link: 'goal.html',
+  },
+  // 2: Upload Evidence
+  {
+    num: 'Stage 3 of 9',
+    title: 'Upload Evidence',
+    subtitle: 'Evidence is ingested into the system. Every file is hashed, catalogued, and verified for integrity before analysis begins.',
+    narrator: 'SA Torres uploads <strong>847 evidence items</strong> — surveillance images, video footage, intercepted communications, and financial records. Every file receives a SHA-256 hash.',
+    blocks: [
+      { title: 'inventory_2 · Evidence Ingested', custom: 'evidence_grid' },
+      { title: 'verified · Integrity Verification', custom: 'integrity_tasks' },
+    ],
+    action: 'Begin Analysis',
+    actionIcon: 'play_arrow',
+    link: 'workspace.html',
+  },
+  // 3: AI Processing
+  {
+    num: 'Stage 4 of 9',
+    title: 'AI Processing',
+    subtitle: 'The Investigation Backbone orchestrates all AI capabilities silently in the background. The investigator continues working while AI processes evidence.',
+    narrator: 'AEGIS is running <strong>6 analysis capabilities</strong> across 847 evidence items. The investigator is not waiting — they can review early results while deeper analysis continues.',
+    blocks: [
+      { title: 'psychology · Processing Pipeline', custom: 'processing_tasks' },
+      { title: 'monitoring · Performance', rows: [
+        ['Evidence Processed', '847 / 847 (100%)', 'success'],
+        ['Total Processing Time', '4m 12s', 'mono'],
+        ['Tokens Consumed', '42,891', 'mono'],
+        ['Anomalies Detected', '41 items flagged', 'accent'],
+      ]},
+    ],
+    action: 'View Processing',
+    actionIcon: 'monitoring',
+    link: 'processing.html',
+  },
+  // 4: Review Findings
+  {
+    num: 'Stage 5 of 9',
+    title: 'Review AI Findings',
+    subtitle: 'AI analysis has generated findings. Each finding includes evidence, reasoning, confidence score, and alternative hypotheses — never a black box.',
+    narrator: 'AEGIS has identified <strong>7 findings</strong> requiring investigator attention. Each finding explains <strong>what</strong> was found, <strong>why</strong> the AI believes it, and <strong>what else</strong> it could be.',
+    blocks: [
+      { title: 'auto_awesome · Generated Findings', custom: 'findings' },
+    ],
+    action: 'Open Findings',
+    actionIcon: 'auto_awesome',
+    link: 'review.html',
+  },
+  // 5: Knowledge Graph
+  {
+    num: 'Stage 6 of 9',
+    title: 'Knowledge Graph Updated',
+    subtitle: 'Approved findings automatically update the investigation knowledge graph. Entities and relationships are mapped, communities detected.',
+    narrator: 'The approved vehicle identification finding has added <strong>VEH-8821</strong> to the graph and linked it to <strong>John Doe</strong>, <strong>Warehouse B</strong>, and <strong>INV-8301</strong> (Echo Syndicate).',
+    blocks: [
+      { title: 'hub · Graph Statistics', rows: [
+        ['Total Entities', '247', 'accent'],
+        ['Relationships', '518', 'accent'],
+        ['Communities', '8 detected', ''],
+        ['New Nodes (this session)', '+12', 'success'],
+        ['New Edges (this session)', '+34', 'success'],
+        ['Cross-Case Links', '2 investigations', 'accent'],
+      ]},
+      { title: 'hub · Mini Knowledge Graph', custom: 'graph_mini' },
+    ],
+    action: 'Open Knowledge Graph',
+    actionIcon: 'hub',
+    link: 'knowledge-graph.html',
+  },
+  // 6: Timeline
+  {
+    num: 'Stage 7 of 9',
+    title: 'Timeline Reconstructed',
+    subtitle: 'All evidence is placed on a unified timeline. GPS data synchronizes with the location map. The complete story emerges.',
+    narrator: 'AEGIS has reconstructed <strong>24 timeline events</strong> across a 13-day investigation. Vehicle VEH-8821 appears at <strong>6 unique locations</strong> with a consistent pattern near Warehouse B.',
+    blocks: [
+      { title: 'timeline · Key Events', custom: 'timeline_mini' },
+      { title: 'map · Location Intelligence', rows: [
+        ['Total Waypoints', '6 unique locations', ''],
+        ['Area Covered', '~1.2 km²', 'mono'],
+        ['Max Dwell Time', '47 minutes · Warehouse B', ''],
+        ['Movement Pattern', 'Recurring visits every 5-7 days', 'accent'],
+      ]},
+    ],
+    action: 'Open Timeline',
+    actionIcon: 'timeline',
+    link: 'timeline.html',
+  },
+  // 7: Human Review
+  {
+    num: 'Stage 8 of 9',
+    title: 'Human Review & Decision',
+    subtitle: 'The investigator reviews each AI finding and makes a legally binding decision. The AI assists. The human decides.',
+    review: true,
+    narrator: null,
+    blocks: [
+      { title: 'gavel · Decision Summary', rows: [
+        ['Findings Reviewed', '6 of 7', ''],
+        ['Approved', '4 findings', 'success'],
+        ['Rejected', '1 finding (metadata anomaly)', 'critical'],
+        ['Pending', '1 finding (person detection)', 'mono'],
+        ['Re-analyzed', '0', 'mono'],
+      ]},
+      { title: 'history · Audit Trail', custom: 'audit_log' },
+    ],
+    action: 'Open Review Queue',
+    actionIcon: 'gavel',
+    link: 'review.html',
+  },
+  // 8: Generate Report
+  {
+    num: 'Stage 9 of 9 — Final',
+    title: 'Investigation Report Generated',
+    subtitle: 'AEGIS compiles all approved findings, evidence, timeline, and recommendations into a professional law enforcement report ready for review.',
+    narrator: 'The draft report includes <strong>6 sections</strong>: Executive Summary, Evidence Summary, Key Findings, Timeline, Entity Relationships, and 5 prioritized recommendations. Ready for supervisor sign-off.',
+    blocks: [
+      { title: 'description · Report Contents', custom: 'report_sections' },
+      { title: 'analytics · Investigation Metrics', rows: [
+        ['Total Evidence Processed', '847 items', 'mono'],
+        ['AI Findings Generated', '7', 'mono'],
+        ['Findings Approved', '4', 'success'],
+        ['Entities Discovered', '247', 'accent'],
+        ['Relationships Mapped', '518', 'accent'],
+        ['Recommendations', '5 actionable', ''],
+        ['Total Processing Time', '4m 12s', 'mono'],
+        ['Report Status', 'Draft — Pending Supervisor', ''],
+      ]},
+    ],
+    action: 'Open Report',
+    actionIcon: 'description',
+    link: 'report.html',
+    final: true,
+  },
+];
+
+function renderStage(idx) {
+  const s = stageContent[idx];
+  const detail = document.getElementById('stageDetail');
+  let html = '<div class="sd-inner">';
+
+  html += `<div class="sd-header"><div class="sd-num">${s.num}</div><div class="sd-title">${s.title}</div><div class="sd-subtitle">${s.subtitle}</div></div>`;
+
+  if (s.review) {
+    html += `<div class="review-banner"><span class="material-symbols-outlined">gavel</span><div class="rb-text"><strong>Human Decision Point</strong> — AI provides analysis, evidence, and reasoning. The investigator makes every legally binding decision. The AI never acts autonomously on findings.</div></div>`;
+  }
+
+  if (s.narrator) {
+    html += `<div class="narrator"><span class="material-symbols-outlined">auto_awesome</span><div class="n-text">${s.narrator}</div></div>`;
+  }
+
+  s.blocks.forEach(b => {
+    const [icon, title] = b.title.split(' · ');
+    html += `<div class="sd-block"><div class="sb-title"><span class="material-symbols-outlined">${icon}</span>${title}</div>`;
+    if (b.rows) {
+      b.rows.forEach(r => {
+        html += `<div class="data-row"><span class="dr-k">${r[0]}</span><span class="dr-v ${r[2]}">${r[1]}</span></div>`;
+      });
+    }
+    if (b.custom) html += renderCustom(b.custom);
+    html += '</div>';
+  });
+
+  // Actions
+  html += '<div class="sd-actions">';
+  if (idx > 0) html += `<button class="sd-btn secondary" onclick="goToStage(${idx-1})"><span class="material-symbols-outlined">arrow_back</span>Previous</button>`;
+  if (s.link) html += `<button class="sd-btn secondary" onclick="window.open('${s.link}','_blank')"><span class="material-symbols-outlined">open_in_new</span>View Page</button>`;
+  if (idx < 8) {
+    html += `<button class="sd-btn primary" onclick="completeAndNext(${idx})"><span class="material-symbols-outlined">${s.actionIcon}</span>${s.action}</button>`;
+  } else {
+    html += `<button class="sd-btn success" onclick="completeAndNext(${idx})"><span class="material-symbols-outlined">check_circle</span>Complete Investigation</button>`;
+  }
+  html += '</div></div>';
+  detail.innerHTML = html;
+}
+
+function renderCustom(type) {
+  switch(type) {
+    case 'objective': return `<div style="font-size:14px;font-weight:600;color:var(--text-primary);padding:10px 14px;background:var(--bg-raised);border:1px solid var(--border);border-radius:6px;border-left:3px solid var(--accent);line-height:1.4">"Identify all persons and entities connected to target vehicle VEH-8821. Extract license plates, determine registered owners, and map every location visited."</div>`;
+
+    case 'capabilities': return `<div class="task-list">${[
+      ['visibility','var(--accent)','Vehicle Detection','Auto'],
+      ['text_fields','var(--cyan)','License Plate OCR','Auto'],
+      ['person_search','var(--orange)','Person Detection','Auto'],
+      ['location_on','var(--high)','GPS & Location','Auto'],
+      ['hub','var(--purple)','Relationship Mapping','Auto'],
+      ['database','var(--emerald)','Cross-Case Search','Review'],
+    ].map(c=>`<div class="task-item"><div class="ti-icon" style="background:${c[1]}"><span class="material-symbols-outlined">${c[0]}</span></div><span class="ti-text">${c[2]}</span><span class="ti-time" style="color:${c[3]==='Auto'?'var(--success)':'var(--high)'}">${c[3]}</span></div>`).join('')}</div>`;
+
+    case 'evidence_grid': return `<div class="ev-grid">${[
+      ['image','812','Images'],['videocam','23','Videos'],['chat','8','Intercepts'],['description','4','Documents'],
+    ].map(e=>`<div class="ev-mini"><span class="material-symbols-outlined">${e[0]}</span><div class="em-count">${e[1]}</div><div class="em-label">${e[2]}</div></div>`).join('')}</div>`;
+
+    case 'integrity_tasks': return `<div class="task-list">${[
+      ['check_circle','var(--success)','SHA-256 hashes computed for 847 files','0.4s'],
+      ['check_circle','var(--success)','EXIF metadata extracted and catalogued','1.2s'],
+      ['check_circle','var(--success)','File type verification complete','0.1s'],
+      ['warning','var(--high)','1 file flagged: EXIF stripped (IMG_024)','—'],
+    ].map(t=>`<div class="task-item"><div class="ti-icon" style="background:${t[1]}"><span class="material-symbols-outlined">${t[0]}</span></div><span class="ti-text">${t[2]}</span><span class="ti-time">${t[3]}</span></div>`).join('')}</div>`;
+
+    case 'processing_tasks': return `<div class="task-list">${[
+      ['check_circle','var(--success)','OCR extraction on 812 images','18s'],
+      ['check_circle','var(--success)','Metadata extraction on 847 items','4s'],
+      ['check_circle','var(--success)','Object detection on 812 images','52s'],
+      ['check_circle','var(--success)','Vehicle analysis and plate recognition','1m 08s'],
+      ['check_circle','var(--success)','Person detection and clustering','44s'],
+      ['check_circle','var(--success)','GPS trajectory analysis','12s'],
+      ['check_circle','var(--success)','Knowledge graph construction','22s'],
+      ['check_circle','var(--success)','Timeline reconstruction','8s'],
+      ['check_circle','var(--success)','Cross-case search','18s'],
+      ['check_circle','var(--success)','Recommendation generation','6s'],
+    ].map(t=>`<div class="task-item"><div class="ti-icon" style="background:${t[1]}"><span class="material-symbols-outlined">${t[0]}</span></div><span class="ti-text">${t[2]}</span><span class="ti-time">${t[3]}</span></div>`).join('')}</div>`;
+
+    case 'findings': return [
+      ['var(--success)','Silver Toyota Corolla at Sector 4G','97%','Approved'],
+      ['var(--success)','Cross-case link to Echo Syndicate','91%','Approved'],
+      ['var(--success)','$14,200 offshore wire transfer','84%','Approved'],
+      ['var(--success)','Signal comms with threat language','78%','Approved'],
+      ['var(--high)','Unidentified male near vehicle','72%','Pending'],
+      ['var(--text-muted)','EXIF metadata anomaly','—','Rejected'],
+    ].map(f=>`<div class="finding-mini"><span class="fm-dot" style="background:${f[0]}"></span><span class="fm-text">${f[1]}</span><span class="fm-conf" style="color:${f[0]}">${f[2]}</span><span class="fm-badge" style="color:${f[3]==='Approved'?'var(--success)':f[3]==='Pending'?'var(--high)':'var(--critical)'};background:${f[3]==='Approved'?'var(--success-bg)':f[3]==='Pending'?'var(--high-bg)':'var(--critical-bg)'};border:1px solid ${f[3]==='Approved'?'var(--success-border)':f[3]==='Pending'?'var(--high-border)':'var(--critical-border)'}">${f[3]}</span></div>`).join('');
+
+    case 'graph_mini': return '<div class="graph-mini"><canvas id="miniGraph"></canvas></div>';
+
+    case 'timeline_mini': return `<div class="tl-mini">${[
+      ['Oct 14 · 09:00Z','Investigation initiated by Dir. Vance',false],
+      ['Oct 14 · 19:05Z','First observation of VEH-8821 at warehouse',true],
+      ['Oct 21 · 11:22Z','Keycard USR-817A used — 47 min dwell',false],
+      ['Oct 25 · 16:30Z','$14,200 wire transfer flagged',true],
+      ['Oct 26 · 09:15Z','Signal intercept: "package is secure"',true],
+      ['Oct 27 · 03:14Z','Vehicle + suspect at Sector 4G',true],
+    ].map(t=>`<div class="tl-mini-item${t[2]?' key':''}"><div class="tl-mini-date">${t[0]}</div><div class="tl-mini-text">${t[1]}</div></div>`).join('')}</div>`;
+
+    case 'audit_log': return `<div class="task-list">${[
+      ['verified','var(--success)','FND-0847 approved by SSA Chen','08:42Z'],
+      ['verified','var(--success)','FND-0849 approved by SSA Chen','08:55Z'],
+      ['verified','var(--success)','FND-0851 approved by SSA Chen','09:08Z'],
+      ['verified','var(--success)','FND-0850 approved by SSA Chen','09:22Z'],
+      ['cancel','var(--critical)','FND-0846 rejected by SSA Chen','09:31Z'],
+      ['pending','var(--high)','FND-0848 pending review','—'],
+    ].map(t=>`<div class="task-item"><div class="ti-icon" style="background:${t[1]}"><span class="material-symbols-outlined">${t[0]}</span></div><span class="ti-text">${t[2]}</span><span class="ti-time">${t[3]}</span></div>`).join('')}</div>`;
+
+    case 'report_sections': return `<div class="task-list">${[
+      ['summarize','var(--accent)','Executive Summary','4 paragraphs'],
+      ['inventory_2','var(--cyan)','Evidence Summary','847 items catalogued'],
+      ['psychology','var(--purple)','Key Findings','6 findings with confidence'],
+      ['timeline','var(--high)','Timeline','7 key events'],
+      ['hub','var(--orange)','Entity Relationships','6 primary entities'],
+      ['recommend','var(--emerald)','Recommendations','5 prioritized actions'],
+    ].map(t=>`<div class="task-item"><div class="ti-icon" style="background:${t[1]}"><span class="material-symbols-outlined">${t[0]}</span></div><span class="ti-text">${t[2]}</span><span class="ti-time">${t[3]}</span></div>`).join('')}</div>`;
+
+    default: return '';
+  }
+}
+
+function goToStage(idx) {
+  currentStage = idx;
+  updatePipeline();
+  renderStage(idx);
+  setTimeout(()=>{if(document.getElementById('miniGraph'))drawMiniGraph()},50);
+}
+
+function completeAndNext(idx) {
+  completedStages.add(idx);
+  if (idx < 8) {
+    currentStage = idx + 1;
+  }
+  updatePipeline();
+  renderStage(currentStage);
+  setTimeout(()=>{if(document.getElementById('miniGraph'))drawMiniGraph()},50);
+}
+
+function updatePipeline() {
+  const stages = document.querySelectorAll('.stage');
+  stages.forEach((s, i) => {
+    s.className = 'stage';
+    const meta = s.querySelector('.st-meta');
+    if (completedStages.has(i)) {
+      s.classList.add('done');
+      s.querySelector('.st-node .material-symbols-outlined').textContent = 'check';
+    } else if (i === currentStage) {
+      if (i === 7) s.classList.add('review');
+      else if (i === 3) s.classList.add('running');
+      else s.classList.add('active');
+    }
+  });
+
+  const pct = Math.round((completedStages.size / 9) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${completedStages.size} / 9`;
+}
+
+function resetWorkflow() {
+  currentStage = 0;
+  completedStages.clear();
+  if (autoPlayInterval) { clearInterval(autoPlayInterval); autoPlayInterval = null; }
+  document.getElementById('autoPlayBtn').querySelector('.material-symbols-outlined').textContent = 'fast_forward';
+  updatePipeline();
+  renderStage(0);
+  // Reset check icons
+  document.querySelectorAll('.stage').forEach((s,i) => {
+    const icons = ['add_circle','flag','cloud_upload','psychology','auto_awesome','hub','timeline','gavel','description'];
+    s.querySelector('.st-node .material-symbols-outlined').textContent = icons[i];
+  });
+}
+
+function toggleAutoPlay() {
+  if (autoPlayInterval) {
+    clearInterval(autoPlayInterval);
+    autoPlayInterval = null;
+    document.getElementById('autoPlayBtn').querySelector('.material-symbols-outlined').textContent = 'fast_forward';
+  } else {
+    document.getElementById('autoPlayBtn').querySelector('.material-symbols-outlined').textContent = 'pause';
+    autoPlayInterval = setInterval(() => {
+      if (currentStage >= 8 && completedStages.has(8)) {
+        clearInterval(autoPlayInterval);
+        autoPlayInterval = null;
+        document.getElementById('autoPlayBtn').querySelector('.material-symbols-outlined').textContent = 'fast_forward';
+        return;
+      }
+      completeAndNext(currentStage);
+    }, 2500);
+  }
+}
+
+function drawMiniGraph() {
+  const c = document.getElementById('miniGraph');
+  if (!c) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = c.parentElement.clientWidth;
+  const h = c.parentElement.clientHeight;
+  c.width = w * dpr; c.height = h * dpr;
+  c.style.width = w + 'px'; c.style.height = h + 'px';
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  const nodes = [
+    {x:w*0.5,y:h*0.38,r:12,c:'#3b82f6',l:'VEH-8821'},
+    {x:w*0.22,y:h*0.3,r:10,c:'#f97316',l:'John Doe'},
+    {x:w*0.78,y:h*0.28,r:10,c:'#f59e0b',l:'Aegis Corp'},
+    {x:w*0.3,y:h*0.72,r:8,c:'#06b6d4',l:'DEVICE'},
+    {x:w*0.7,y:h*0.7,r:8,c:'#a855f7',l:'@architect'},
+    {x:w*0.14,y:h*0.58,r:7,c:'#22c55e',l:'WH-B'},
+    {x:w*0.86,y:h*0.55,r:7,c:'#ec4899',l:'ZY-8841'},
+    {x:w*0.5,y:h*0.82,r:7,c:'#ef4444',l:'INV-8301'},
+  ];
+  const edges = [[0,1],[0,2],[1,3],[1,4],[1,5],[2,6],[2,5],[0,7],[4,7],[3,5]];
+
+  edges.forEach(([a,b])=>{
+    ctx.strokeStyle='rgba(59,130,246,0.15)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(nodes[a].x,nodes[a].y);ctx.lineTo(nodes[b].x,nodes[b].y);ctx.stroke();
+  });
+
+  nodes.forEach(n=>{
+    const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*2.5);
+    g.addColorStop(0,n.c+'20');g.addColorStop(1,n.c+'00');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(n.x,n.y,n.r*2.5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=n.c;ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fill();
+    ctx.font='500 8px "JetBrains Mono"';ctx.fillStyle='#5e606d';ctx.textAlign='center';
+    ctx.fillText(n.l,n.x,n.y+n.r+10);
+  });
+}
+
+// Init
+goToStage(0);
+</script>
+<script src="nav.js"></script>`n</body>
+</html>
+

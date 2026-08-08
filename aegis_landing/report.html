@@ -1,0 +1,427 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AEGIS — Investigation Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@350;400;450;500;550;600;700&family=JetBrains+Mono:wght@400;450;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-base:#09090b;--bg-surface:#0f1115;--bg-raised:#151619;--bg-elevated:#1a1b1f;
+  --bg-hover:#1f2024;--bg-active:#25262b;
+  --border:#232429;--border-light:#2a2b31;
+  --text-primary:#ececee;--text-secondary:#9395a1;--text-tertiary:#5e606d;--text-muted:#44464f;
+  --accent:#3b82f6;--accent-dim:#2563eb;--accent-glow:rgba(59,130,246,0.08);--accent-subtle:rgba(59,130,246,0.12);--accent-border:rgba(59,130,246,0.25);
+  --critical:#ef4444;--critical-bg:rgba(239,68,68,0.06);--critical-border:rgba(239,68,68,0.2);
+  --success:#22c55e;--success-bg:rgba(34,197,94,0.06);--success-border:rgba(34,197,94,0.2);
+  --high:#f59e0b;--high-bg:rgba(245,158,11,0.06);--high-border:rgba(245,158,11,0.2);
+  --purple:#a855f7;
+  --sidebar-w:232px;--topbar-h:44px;--radius-sm:5px;--radius-md:7px;
+  --doc-max:780px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,system-ui,sans-serif;background:var(--bg-base);color:var(--text-primary);height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased;font-feature-settings:'cv02','cv03','cv04','cv11'}
+.shell{display:flex;height:100vh}
+
+.sidebar{width:var(--sidebar-w);background:var(--bg-surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;user-select:none}
+.sidebar-brand{height:var(--topbar-h);display:flex;align-items:center;padding:0 16px;gap:10px;border-bottom:1px solid var(--border)}
+.sidebar-brand .bi{width:24px;height:24px;background:var(--accent);border-radius:5px;display:flex;align-items:center;justify-content:center}
+.sidebar-brand .bi .material-symbols-outlined{font-size:14px;color:#fff;font-variation-settings:'FILL' 1}
+.sidebar-brand .bt{font-size:13px;font-weight:650;letter-spacing:-0.02em}
+.ss{padding:6px 8px 0}.sl{font-size:10px;font-weight:600;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;padding:8px 8px 4px}
+.si{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;font-weight:450;color:var(--text-secondary);transition:all 100ms;text-decoration:none;position:relative}
+.si:hover{background:var(--bg-hover);color:var(--text-primary)}
+.si.a{background:var(--accent-subtle);color:var(--accent);font-weight:550}
+.si.a::before{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:2px;height:14px;background:var(--accent);border-radius:0 2px 2px 0}
+.si .material-symbols-outlined{font-size:17px;font-variation-settings:'wght' 300,'FILL' 0}
+.si.a .material-symbols-outlined{font-variation-settings:'wght' 400,'FILL' 1}
+.si .bd{margin-left:auto;font-size:9.5px;font-weight:600;color:var(--text-tertiary);background:var(--bg-active);padding:0 5px;border-radius:3px;height:15px;display:flex;align-items:center}
+.si .bd.al{background:var(--critical-bg);color:var(--critical);border:1px solid var(--critical-border)}
+.sf{margin-top:auto;border-top:1px solid var(--border);padding:8px}
+.su{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--radius-sm);cursor:pointer}
+.su .av{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent-dim),var(--accent));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
+.su .un{font-size:12px;font-weight:550}.su .ur{font-size:10px;color:var(--text-muted)}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+.topbar{height:var(--topbar-h);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:8px;flex-shrink:0;background:var(--bg-surface)}
+.bc{display:flex;align-items:center;gap:6px;font-size:13px}
+.bc .d{color:var(--text-tertiary)}.bc .s{color:var(--text-muted);font-size:11px}.bc .c{color:var(--text-primary);font-weight:550}
+.cb{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);background:var(--bg-elevated);border:1px solid var(--border);padding:2px 6px;border-radius:3px;margin-left:4px}
+
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:4px}
+.tb-btn{height:28px;padding:0 10px;display:flex;align-items:center;gap:4px;border-radius:var(--radius-sm);border:1px solid var(--border);background:none;color:var(--text-tertiary);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;transition:all 100ms}
+.tb-btn:hover{border-color:var(--border-light);color:var(--text-secondary);background:var(--bg-hover)}
+.tb-btn .material-symbols-outlined{font-size:15px;font-variation-settings:'wght' 300}
+.tb-btn.primary-btn{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tb-btn.primary-btn:hover{background:var(--accent-dim)}
+
+/* ═══ Outline sidebar ═══ */
+.report-layout{flex:1;display:flex;overflow:hidden}
+
+.outline{
+  width:200px;background:var(--bg-surface);border-right:1px solid var(--border);
+  padding:12px 8px;flex-shrink:0;overflow-y:auto;
+}
+.outline::-webkit-scrollbar{width:3px}
+.outline::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.outline-title{font-size:9.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;padding:4px 8px;margin-bottom:4px}
+.outline-item{
+  display:flex;align-items:center;gap:5px;padding:4px 8px;
+  border-radius:4px;font-size:11.5px;font-weight:450;color:var(--text-tertiary);
+  cursor:pointer;transition:all 80ms;text-decoration:none;
+}
+.outline-item:hover{background:var(--bg-hover);color:var(--text-secondary)}
+.outline-item.active-o{color:var(--accent);font-weight:550;background:var(--accent-glow)}
+.outline-item .o-num{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted);width:16px;flex-shrink:0}
+.outline-item .material-symbols-outlined{font-size:14px;font-variation-settings:'wght' 300}
+
+/* ═══ Document ═══ */
+.doc-scroll{
+  flex:1;overflow-y:auto;
+  background:var(--bg-base);
+  display:flex;justify-content:center;
+  padding:32px 40px 80px;
+}
+.doc-scroll::-webkit-scrollbar{width:6px}
+.doc-scroll::-webkit-scrollbar-track{background:transparent}
+.doc-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.doc{
+  width:100%;max-width:var(--doc-max);
+}
+
+/* Document header */
+.doc-header{
+  padding-bottom:24px;margin-bottom:24px;
+  border-bottom:1px solid var(--border);
+}
+
+.doc-classification{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;
+  color:var(--critical);background:var(--critical-bg);border:1px solid var(--critical-border);
+  padding:3px 10px;border-radius:3px;display:inline-block;margin-bottom:12px;
+}
+
+.doc-logo{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.doc-logo .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center}
+.doc-logo .logo-icon .material-symbols-outlined{font-size:18px;color:#fff;font-variation-settings:'FILL' 1}
+.doc-logo .logo-text{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em}
+
+.doc-title{font-size:24px;font-weight:700;letter-spacing:-0.03em;line-height:1.2;margin-bottom:6px}
+.doc-subtitle{font-size:14px;color:var(--text-tertiary);font-weight:450;margin-bottom:16px}
+
+.doc-meta-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;
+  padding:12px 16px;background:var(--bg-surface);border:1px solid var(--border);
+  border-radius:var(--radius-md);
+}
+.dm{display:flex;justify-content:space-between;align-items:baseline}
+.dm-k{font-size:11px;color:var(--text-tertiary)}
+.dm-v{font-size:11px;font-weight:550;color:var(--text-primary)}
+.dm-v.mono{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:450}
+.dm-v.crit{color:var(--critical)}
+.dm-v.ok{color:var(--success)}
+
+/* Sections */
+.doc-section{margin-bottom:28px}
+.doc-section:last-child{margin-bottom:0}
+
+.doc-h2{
+  font-size:15px;font-weight:650;letter-spacing:-0.01em;
+  color:var(--text-primary);margin-bottom:12px;padding-bottom:6px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;
+}
+.doc-h2 .sec-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);font-weight:500}
+.doc-h2 .material-symbols-outlined{font-size:16px;color:var(--accent);font-variation-settings:'FILL' 1,'wght' 400}
+
+.doc-h3{font-size:13px;font-weight:600;color:var(--text-primary);margin:12px 0 6px}
+
+.doc-p{font-size:13px;color:var(--text-secondary);line-height:1.75;margin-bottom:10px}
+.doc-p strong{color:var(--text-primary);font-weight:600}
+.doc-p .hl{color:var(--accent);font-weight:550}
+.doc-p .code{font-family:'JetBrains Mono',monospace;font-size:11.5px;background:var(--bg-elevated);padding:1px 4px;border-radius:2px;border:1px solid var(--border)}
+
+/* Tables */
+.doc-table{width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:12px}
+.doc-table th{
+  text-align:left;padding:6px 10px;font-size:10px;font-weight:600;
+  color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;
+  border-bottom:1px solid var(--border);background:var(--bg-surface);
+}
+.doc-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-secondary);vertical-align:top}
+.doc-table tr:hover td{background:var(--bg-hover)}
+.doc-table .mono-cell{font-family:'JetBrains Mono',monospace;font-size:11px}
+
+.badge-cell{font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:3px;display:inline-block}
+.badge-cell.critical{color:var(--critical);background:var(--critical-bg);border:1px solid var(--critical-border)}
+.badge-cell.high{color:var(--high);background:var(--high-bg);border:1px solid var(--high-border)}
+.badge-cell.approved{color:var(--success);background:var(--success-bg);border:1px solid var(--success-border)}
+.badge-cell.pending{color:var(--high);background:var(--high-bg);border:1px solid var(--high-border)}
+.badge-cell.rejected{color:var(--critical);background:var(--critical-bg);border:1px solid var(--critical-border)}
+
+/* Timeline compact */
+.doc-tl{border-left:2px solid var(--border);padding-left:16px;margin:8px 0 12px}
+.doc-tl-item{position:relative;margin-bottom:10px}
+.doc-tl-item::before{content:'';position:absolute;left:-21px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--bg-active);border:1.5px solid var(--text-muted)}
+.doc-tl-item.key-event::before{background:var(--accent);border-color:var(--accent)}
+.doc-tl-date{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);margin-bottom:1px}
+.doc-tl-title{font-size:12.5px;font-weight:550;color:var(--text-primary)}
+.doc-tl-desc{font-size:11.5px;color:var(--text-tertiary);margin-top:1px}
+
+/* Relationship diagram */
+.doc-rel-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0 12px}
+.rel-card{
+  padding:8px 10px;border-radius:4px;border:1px solid var(--border);
+  background:var(--bg-surface);
+}
+.rel-card .rc-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted);margin-bottom:3px}
+.rel-card .rc-name{font-size:12px;font-weight:600;color:var(--text-primary)}
+.rel-card .rc-detail{font-size:10.5px;color:var(--text-tertiary);margin-top:1px}
+
+/* Recommendation cards */
+.rec-card{
+  padding:10px 14px;border-radius:var(--radius-sm);
+  border:1px solid var(--border);background:var(--bg-surface);
+  margin-bottom:6px;display:flex;gap:10px;align-items:flex-start;
+}
+.rec-card .rec-num{
+  width:22px;height:22px;border-radius:50%;
+  background:var(--accent-glow);border:1px solid var(--accent-border);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;
+  color:var(--accent);flex-shrink:0;margin-top:1px;
+}
+.rec-card .rec-body{flex:1}
+.rec-card .rec-title{font-size:12.5px;font-weight:600;color:var(--text-primary);margin-bottom:2px}
+.rec-card .rec-desc{font-size:11.5px;color:var(--text-tertiary);line-height:1.5}
+.rec-card .rec-priority{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;padding:1px 5px;border-radius:2px;margin-left:auto;flex-shrink:0}
+
+/* Footer */
+.doc-footer{
+  margin-top:32px;padding-top:16px;border-top:1px solid var(--border);
+  text-align:center;
+}
+.doc-footer .df-class{font-size:10px;font-weight:700;color:var(--critical);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px}
+.doc-footer .df-gen{font-size:10px;color:var(--text-muted)}
+
+@media print{
+  .sidebar,.topbar,.outline{display:none!important}
+  .doc-scroll{padding:0!important;background:#fff!important}
+  .doc{color:#111!important}
+  body{background:#fff!important}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand"><div class="bi"><span class="material-symbols-outlined">shield</span></div><span class="bt">AEGIS</span></div>
+    <div class="ss">
+      <div class="sl">Platform</div>
+      <a class="si" href="index.html"><span class="material-symbols-outlined">folder_managed</span>Investigations<span class="bd">12</span></a>
+      <a class="si" href="workspace.html"><span class="material-symbols-outlined">work</span>Workspace</a>
+      <a class="si" href="#"><span class="material-symbols-outlined">inventory_2</span>Evidence Library</a>
+      <a class="si" href="knowledge-graph.html"><span class="material-symbols-outlined">hub</span>Knowledge Graph</a>
+      <a class="si" href="timeline.html"><span class="material-symbols-outlined">timeline</span>Timeline</a>
+      <a class="si" href="#"><span class="material-symbols-outlined">search</span>Search</a>
+    </div>
+    <div class="ss">
+      <div class="sl">Operations</div>
+      <a class="si" href="review.html"><span class="material-symbols-outlined">task_alt</span>Review Queue<span class="bd al">3</span></a>
+      <a class="si" href="processing.html"><span class="material-symbols-outlined">monitoring</span>Processing</a>
+      <a class="si a" href="#"><span class="material-symbols-outlined">description</span>Reports</a>
+    </div>
+    <div class="sf"><div class="su"><div class="av">SC</div><div><div class="un">SSA Sarah Chen</div><div class="ur">Senior Analyst</div></div></div></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="bc"><span class="d">Operation Nightfall</span><span class="s">/</span><span class="c">Investigation Report</span><span class="cb">INV-8492</span></div>
+      <div class="tb-right">
+        <button class="tb-btn"><span class="material-symbols-outlined">edit</span>Edit</button>
+        <button class="tb-btn"><span class="material-symbols-outlined">share</span>Share</button>
+        <button class="tb-btn"><span class="material-symbols-outlined">print</span>Print</button>
+        <button class="tb-btn primary-btn" onclick="window.print()"><span class="material-symbols-outlined">picture_as_pdf</span>Export PDF</button>
+      </div>
+    </header>
+
+    <div class="report-layout">
+      <!-- Outline -->
+      <nav class="outline">
+        <div class="outline-title">Contents</div>
+        <a class="outline-item active-o" href="#exec"><span class="o-num">1</span>Executive Summary</a>
+        <a class="outline-item" href="#evidence"><span class="o-num">2</span>Evidence Summary</a>
+        <a class="outline-item" href="#findings"><span class="o-num">3</span>Key Findings</a>
+        <a class="outline-item" href="#timeline"><span class="o-num">4</span>Timeline</a>
+        <a class="outline-item" href="#entities"><span class="o-num">5</span>Entity Relationships</a>
+        <a class="outline-item" href="#recommendations"><span class="o-num">6</span>Recommendations</a>
+        <a class="outline-item" href="#appendix"><span class="o-num">A</span>Appendix</a>
+      </nav>
+
+      <!-- Document -->
+      <div class="doc-scroll">
+        <div class="doc">
+
+          <!-- Header -->
+          <div class="doc-header">
+            <div class="doc-classification">LAW ENFORCEMENT SENSITIVE — LES</div>
+            <div class="doc-logo">
+              <div class="logo-icon"><span class="material-symbols-outlined">shield</span></div>
+              <span class="logo-text">AEGIS Investigation Intelligence Platform</span>
+            </div>
+            <div class="doc-title">Operation Nightfall — Threat Assessment Report</div>
+            <div class="doc-subtitle">Comprehensive intelligence analysis for case INV-8492</div>
+
+            <div class="doc-meta-grid">
+              <div class="dm"><span class="dm-k">Case Number</span><span class="dm-v mono">INV-8492</span></div>
+              <div class="dm"><span class="dm-k">Classification</span><span class="dm-v crit">Law Enforcement Sensitive</span></div>
+              <div class="dm"><span class="dm-k">Lead Investigator</span><span class="dm-v">SSA Sarah Chen</span></div>
+              <div class="dm"><span class="dm-k">Priority</span><span class="dm-v crit">Critical</span></div>
+              <div class="dm"><span class="dm-k">Date Prepared</span><span class="dm-v mono">2023-10-27</span></div>
+              <div class="dm"><span class="dm-k">Status</span><span class="dm-v">Draft — Pending Supervisor Review</span></div>
+              <div class="dm"><span class="dm-k">Period Covered</span><span class="dm-v mono">2023-10-14 → 2023-10-27</span></div>
+              <div class="dm"><span class="dm-k">Evidence Integrity</span><span class="dm-v ok">✓ All Hashes Verified</span></div>
+            </div>
+          </div>
+
+          <!-- 1. Executive Summary -->
+          <div class="doc-section" id="exec">
+            <div class="doc-h2"><span class="sec-num">1</span><span class="material-symbols-outlined">summarize</span>Executive Summary</div>
+            <div class="doc-p">This report presents the findings of <strong>Operation Nightfall (INV-8492)</strong>, a critical-priority investigation initiated on <strong>October 14, 2023</strong>, by Dir. Vance. The investigation was prompted by intelligence indicating potential illicit activities linked to a shell company, <strong>Aegis Corp</strong>, operating out of the Pier District.</div>
+            <div class="doc-p">Over a 13-day period, AEGIS processed <strong>847 evidence items</strong> comprising surveillance imagery, video footage, communications intercepts, financial records, and device data. The AI-assisted analysis identified <strong>247 entities</strong> and <strong>518 relationships</strong>, leading to <strong>7 actionable findings</strong>, of which <strong>4 have been reviewed and approved</strong> by the lead investigator.</div>
+            <div class="doc-p">The primary suspect, identified as <strong>John Doe</strong> (aliases: "J-Dog", "The Architect"), has been connected to a <strong>silver Toyota Corolla (VEH-8821)</strong> observed at multiple locations of interest. Key evidence includes a <strong>partial license plate match</strong> (<span class="code">7X-A4**</span>) against watchlist <strong>WL-4491</strong>, a <strong>$14,200 wire transfer</strong> to an offshore account, and intercepted Signal communications referencing planned activities.</div>
+            <div class="doc-p"><strong>Cross-case analysis</strong> has revealed a connection to <strong>INV-8301 (Echo Syndicate)</strong>, a previously closed investigation that may require re-evaluation. This report recommends escalation and additional surveillance.</div>
+          </div>
+
+          <!-- 2. Evidence Summary -->
+          <div class="doc-section" id="evidence">
+            <div class="doc-h2"><span class="sec-num">2</span><span class="material-symbols-outlined">inventory_2</span>Evidence Summary</div>
+            <table class="doc-table">
+              <thead><tr><th>Type</th><th>Count</th><th>Analyzed</th><th>Flagged</th><th>Integrity</th></tr></thead>
+              <tbody>
+                <tr><td>Surveillance Images</td><td class="mono-cell">812</td><td class="mono-cell">812 (100%)</td><td class="mono-cell">34</td><td><span class="badge-cell approved">Verified</span></td></tr>
+                <tr><td>Video Footage</td><td class="mono-cell">23</td><td class="mono-cell">23 (100%)</td><td class="mono-cell">4</td><td><span class="badge-cell approved">Verified</span></td></tr>
+                <tr><td>Audio Intercepts</td><td class="mono-cell">8</td><td class="mono-cell">8 (100%)</td><td class="mono-cell">2</td><td><span class="badge-cell approved">Verified</span></td></tr>
+                <tr><td>Documents</td><td class="mono-cell">4</td><td class="mono-cell">4 (100%)</td><td class="mono-cell">1</td><td><span class="badge-cell approved">Verified</span></td></tr>
+                <tr><td style="font-weight:600;color:var(--text-primary)">Total</td><td class="mono-cell" style="font-weight:600">847</td><td class="mono-cell" style="font-weight:600">847</td><td class="mono-cell" style="font-weight:600">41</td><td></td></tr>
+              </tbody>
+            </table>
+            <div class="doc-p"><strong>Note:</strong> One image (<span class="code">IMG_024_parking_east.jpg</span>) was flagged for <strong>EXIF metadata anomaly</strong> — all metadata fields stripped prior to acquisition. This has been referred to forensic integrity review.</div>
+          </div>
+
+          <!-- 3. Key Findings -->
+          <div class="doc-section" id="findings">
+            <div class="doc-h2"><span class="sec-num">3</span><span class="material-symbols-outlined">psychology</span>Key Findings</div>
+            <table class="doc-table">
+              <thead><tr><th>ID</th><th>Finding</th><th>Confidence</th><th>Sources</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td class="mono-cell">FND-0847</td><td>Silver Toyota Corolla identified at Sector 4G; partial plate matches watchlist WL-4491</td><td class="mono-cell" style="color:var(--success)">97%</td><td class="mono-cell">3</td><td><span class="badge-cell approved">Approved</span></td></tr>
+                <tr><td class="mono-cell">FND-0849</td><td>Vehicle plate linked to INV-8301 (Echo Syndicate) — cross-case intelligence</td><td class="mono-cell" style="color:var(--success)">91%</td><td class="mono-cell">2</td><td><span class="badge-cell approved">Approved</span></td></tr>
+                <tr><td class="mono-cell">FND-0851</td><td>Financial anomaly — $14,200 wire transfer to offshore account ZY-8841</td><td class="mono-cell" style="color:var(--high)">84%</td><td class="mono-cell">1</td><td><span class="badge-cell approved">Approved</span></td></tr>
+                <tr><td class="mono-cell">FND-0848</td><td>Unidentified male observed near target vehicle at 03:14Z</td><td class="mono-cell" style="color:var(--high)">72%</td><td class="mono-cell">1</td><td><span class="badge-cell pending">Pending</span></td></tr>
+                <tr><td class="mono-cell">FND-0850</td><td>Intercepted Signal message with threat indicators and coded language</td><td class="mono-cell" style="color:var(--high)">78%</td><td class="mono-cell">1</td><td><span class="badge-cell approved">Approved</span></td></tr>
+                <tr><td class="mono-cell">FND-0846</td><td>EXIF metadata stripped from IMG_024 — possible tampering</td><td class="mono-cell" style="color:var(--text-muted)">—</td><td class="mono-cell">1</td><td><span class="badge-cell rejected">Rejected</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 4. Timeline -->
+          <div class="doc-section" id="timeline">
+            <div class="doc-h2"><span class="sec-num">4</span><span class="material-symbols-outlined">timeline</span>Timeline of Key Events</div>
+            <div class="doc-tl">
+              <div class="doc-tl-item"><div class="doc-tl-date">Oct 14, 2023 · 09:00Z</div><div class="doc-tl-title">Investigation initiated by Dir. Vance</div><div class="doc-tl-desc">Case INV-8492 opened with priority Critical</div></div>
+              <div class="doc-tl-item key-event"><div class="doc-tl-date">Oct 14, 2023 · 19:05Z</div><div class="doc-tl-title">First observation of VEH-8821 at warehouse loading dock</div><div class="doc-tl-desc">Silver Toyota Corolla captured by perimeter camera</div></div>
+              <div class="doc-tl-item"><div class="doc-tl-date">Oct 21, 2023 · 11:22Z</div><div class="doc-tl-title">Keycard USR-817A used at Warehouse B</div><div class="doc-tl-desc">47-minute dwell time at loading dock entrance</div></div>
+              <div class="doc-tl-item"><div class="doc-tl-date">Oct 25, 2023 · 16:30Z</div><div class="doc-tl-title">Wire transfer of $14,200 to offshore account ZY-8841</div><div class="doc-tl-desc">Financial anomaly flagged — exceeds CTR threshold</div></div>
+              <div class="doc-tl-item key-event"><div class="doc-tl-date">Oct 26, 2023 · 09:15Z</div><div class="doc-tl-title">Intercepted Signal message from @architect_99</div><div class="doc-tl-desc">"The package is secure. Moving to coordinate point beta at 2200."</div></div>
+              <div class="doc-tl-item"><div class="doc-tl-date">Oct 26, 2023 · 22:48Z</div><div class="doc-tl-title">DEVICE-4491 GPS ping at Pier District</div><div class="doc-tl-desc">12.5m accuracy — consistent with Warehouse B</div></div>
+              <div class="doc-tl-item key-event"><div class="doc-tl-date">Oct 27, 2023 · 03:14Z</div><div class="doc-tl-title">Vehicle and suspect observed at Sector 4G</div><div class="doc-tl-desc">License plate partial match confirmed against WL-4491</div></div>
+            </div>
+          </div>
+
+          <!-- 5. Entity Relationships -->
+          <div class="doc-section" id="entities">
+            <div class="doc-h2"><span class="sec-num">5</span><span class="material-symbols-outlined">hub</span>Entity Relationships</div>
+            <div class="doc-p">The knowledge graph contains <strong>247 entities</strong> organized into <strong>8 communities</strong>. The following are the primary entities and their key relationships relevant to this investigation:</div>
+            <div class="doc-rel-grid">
+              <div class="rel-card"><div class="rc-label" style="color:var(--critical)">Primary Suspect</div><div class="rc-name">John Doe</div><div class="rc-detail">ID: USR-992-817A · Aliases: "J-Dog", "The Architect" · Confidence: 0.91</div></div>
+              <div class="rel-card"><div class="rc-label" style="color:var(--accent)">Vehicle</div><div class="rc-name">VEH-8821 · Silver Toyota Corolla</div><div class="rc-detail">Registered to suspect · Plate: 7X-A4** · Watchlist WL-4491</div></div>
+              <div class="rel-card"><div class="rc-label" style="color:var(--high)">Organization</div><div class="rc-name">Aegis Corp (Shell Company)</div><div class="rc-detail">Operates Warehouse B · Suspect previously employed</div></div>
+              <div class="rel-card"><div class="rc-label" style="color:#06b6d4">Device</div><div class="rc-name">DEVICE-4491 · iPhone 15</div><div class="rc-detail">Owned by suspect · GPS pings at Sector 4G, Pier District</div></div>
+              <div class="rel-card"><div class="rc-label" style="color:#a855f7">Account</div><div class="rc-name">@architect_99 (Signal)</div><div class="rc-detail">Linked to suspect email · Source of intercepted comms</div></div>
+              <div class="rel-card"><div class="rc-label" style="color:var(--high)">Financial</div><div class="rc-name">Account ZY-8841 (Cayman Islands)</div><div class="rc-detail">Received $14,200 wire · Owned by Aegis Corp</div></div>
+            </div>
+          </div>
+
+          <!-- 6. Recommendations -->
+          <div class="doc-section" id="recommendations">
+            <div class="doc-h2"><span class="sec-num">6</span><span class="material-symbols-outlined">recommend</span>Recommendations</div>
+            <div class="rec-card"><div class="rec-num">1</div><div class="rec-body"><div class="rec-title">Run complete plate through DMV database</div><div class="rec-desc">Obtain full registration for VEH-8821. Cross-reference with parking garage records from Oct 26–28 in the Pier District area.</div></div><span class="rec-priority" style="color:var(--critical);background:var(--critical-bg);border:1px solid var(--critical-border)">Urgent</span></div>
+            <div class="rec-card"><div class="rec-num">2</div><div class="rec-body"><div class="rec-title">Re-open INV-8301 (Echo Syndicate) for cross-case review</div><div class="rec-desc">Same vehicle model and partial plate observed in a closed case. Request access to INV-8301 evidence archive. Alert Dir. Vance.</div></div><span class="rec-priority" style="color:var(--critical);background:var(--critical-bg);border:1px solid var(--critical-border)">Urgent</span></div>
+            <div class="rec-card"><div class="rec-num">3</div><div class="rec-body"><div class="rec-title">Request FinCEN SAR for account ZY-8841</div><div class="rec-desc">The $14,200 transfer exceeds structuring patterns. Coordinate with financial crimes unit for Suspicious Activity Report filing.</div></div><span class="rec-priority" style="color:var(--high);background:var(--high-bg);border:1px solid var(--high-border)">High</span></div>
+            <div class="rec-card"><div class="rec-num">4</div><div class="rec-body"><div class="rec-title">Deploy additional surveillance at Warehouse B</div><div class="rec-desc">Suspect has visited 3 times (Oct 14, 21, 26). Next visit predicted within 3–5 days based on behavioral pattern analysis.</div></div><span class="rec-priority" style="color:var(--high);background:var(--high-bg);border:1px solid var(--high-border)">High</span></div>
+            <div class="rec-card"><div class="rec-num">5</div><div class="rec-body"><div class="rec-title">Perform gait analysis on UNKNOWN_1</div><div class="rec-desc">Cross-reference with VID_alley_cam_01.mp4 for additional angles. Facial recognition inconclusive due to low-light conditions.</div></div><span class="rec-priority" style="color:var(--text-tertiary);background:var(--bg-elevated);border:1px solid var(--border)">Medium</span></div>
+          </div>
+
+          <!-- Appendix -->
+          <div class="doc-section" id="appendix">
+            <div class="doc-h2"><span class="sec-num">A</span><span class="material-symbols-outlined">attach_file</span>Appendix</div>
+            <div class="doc-h3">A.1 AI Capability Usage</div>
+            <table class="doc-table">
+              <thead><tr><th>Capability</th><th>Invocations</th><th>Avg Latency</th><th>Tokens Used</th></tr></thead>
+              <tbody>
+                <tr><td class="mono-cell">vision.detection</td><td class="mono-cell">812</td><td class="mono-cell">52ms</td><td class="mono-cell">18,421</td></tr>
+                <tr><td class="mono-cell">extraction.ocr</td><td class="mono-cell">812</td><td class="mono-cell">22ms</td><td class="mono-cell">12,847</td></tr>
+                <tr><td class="mono-cell">extraction.metadata</td><td class="mono-cell">847</td><td class="mono-cell">4ms</td><td class="mono-cell">3,201</td></tr>
+                <tr><td class="mono-cell">analysis.trajectory</td><td class="mono-cell">34</td><td class="mono-cell">680ms</td><td class="mono-cell">4,891</td></tr>
+                <tr><td class="mono-cell">ai.recommend</td><td class="mono-cell">1</td><td class="mono-cell">3.2s</td><td class="mono-cell">3,531</td></tr>
+              </tbody>
+            </table>
+            <div class="doc-h3">A.2 Chain of Custody</div>
+            <div class="doc-p">All <strong>847 evidence items</strong> maintain an unbroken chain of custody. SHA-256 hashes were computed at intake and verified at each processing stage. No integrity violations detected. Full hash manifest available upon request.</div>
+          </div>
+
+          <!-- Footer -->
+          <div class="doc-footer">
+            <div class="df-class">LAW ENFORCEMENT SENSITIVE — LES</div>
+            <div class="df-gen">Generated by AEGIS Intelligence Platform v4.2 · Report ID: RPT-8492-001 · Page 1 of 1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Outline scroll sync
+  document.querySelectorAll('.outline-item').forEach(item => {
+    item.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelectorAll('.outline-item').forEach(i => i.classList.remove('active-o'));
+      item.classList.add('active-o');
+      const id = item.getAttribute('href').substring(1);
+      document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+  });
+
+  // Scroll spy
+  const sections = document.querySelectorAll('.doc-section');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        document.querySelectorAll('.outline-item').forEach(i => i.classList.remove('active-o'));
+        document.querySelector(`.outline-item[href="#${id}"]`)?.classList.add('active-o');
+      }
+    });
+  }, {threshold:0.3});
+  sections.forEach(s => observer.observe(s));
+</script>
+<script src="nav.js"></script>`n</body>
+</html>
+

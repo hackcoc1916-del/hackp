@@ -1,0 +1,548 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AEGIS — Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@350;400;450;500;550;600;700&family=JetBrains+Mono:wght@400;450;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-base:#09090b;--bg-surface:#0f1115;--bg-raised:#151619;--bg-elevated:#1a1b1f;
+  --bg-hover:#1f2024;--bg-active:#25262b;
+  --border:#232429;--border-light:#2a2b31;
+  --text-primary:#ececee;--text-secondary:#9395a1;--text-tertiary:#5e606d;--text-muted:#44464f;
+  --accent:#3b82f6;--accent-dim:#2563eb;--accent-glow:rgba(59,130,246,0.08);--accent-subtle:rgba(59,130,246,0.12);--accent-border:rgba(59,130,246,0.25);
+  --critical:#ef4444;--critical-bg:rgba(239,68,68,0.06);--critical-border:rgba(239,68,68,0.2);
+  --success:#22c55e;--success-bg:rgba(34,197,94,0.06);--success-border:rgba(34,197,94,0.2);
+  --high:#f59e0b;--high-bg:rgba(245,158,11,0.06);--high-border:rgba(245,158,11,0.2);
+  --purple:#a855f7;--cyan:#06b6d4;--orange:#f97316;--pink:#ec4899;--emerald:#10b981;
+  --sidebar-w:232px;--topbar-h:44px;--radius-sm:5px;--radius-md:7px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,system-ui,sans-serif;background:var(--bg-base);color:var(--text-primary);height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased;font-feature-settings:'cv02','cv03','cv04','cv11'}
+.shell{display:flex;height:100vh}
+
+.sidebar{width:var(--sidebar-w);background:var(--bg-surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;user-select:none}
+.sidebar-brand{height:var(--topbar-h);display:flex;align-items:center;padding:0 16px;gap:10px;border-bottom:1px solid var(--border)}
+.sidebar-brand .bi{width:24px;height:24px;background:var(--accent);border-radius:5px;display:flex;align-items:center;justify-content:center}
+.sidebar-brand .bi .material-symbols-outlined{font-size:14px;color:#fff;font-variation-settings:'FILL' 1}
+.sidebar-brand .bt{font-size:13px;font-weight:650;letter-spacing:-0.02em}
+.ss{padding:6px 8px 0}.sl{font-size:10px;font-weight:600;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;padding:8px 8px 4px}
+.si{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--radius-sm);cursor:pointer;font-size:12.5px;font-weight:450;color:var(--text-secondary);transition:all 100ms;text-decoration:none;position:relative}
+.si:hover{background:var(--bg-hover);color:var(--text-primary)}
+.si.a{background:var(--accent-subtle);color:var(--accent);font-weight:550}
+.si.a::before{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:2px;height:14px;background:var(--accent);border-radius:0 2px 2px 0}
+.si .material-symbols-outlined{font-size:17px;font-variation-settings:'wght' 300,'FILL' 0}
+.si.a .material-symbols-outlined{font-variation-settings:'wght' 400,'FILL' 1}
+.si .bd{margin-left:auto;font-size:9.5px;font-weight:600;color:var(--text-tertiary);background:var(--bg-active);padding:0 5px;border-radius:3px;height:15px;display:flex;align-items:center}
+.si .bd.al{background:var(--critical-bg);color:var(--critical);border:1px solid var(--critical-border)}
+.sf{margin-top:auto;border-top:1px solid var(--border);padding:8px}
+.su{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--radius-sm);cursor:pointer}
+.su .av{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent-dim),var(--accent));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
+.su .un{font-size:12px;font-weight:550}.su .ur{font-size:10px;color:var(--text-muted)}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ═══ Search Header ═══ */
+.search-header{
+  padding:32px 40px 0;flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;
+}
+
+.search-title{
+  font-size:22px;font-weight:700;letter-spacing:-0.03em;margin-bottom:16px;
+  display:flex;align-items:center;gap:8px;
+}
+.search-title .material-symbols-outlined{font-size:24px;color:var(--accent);font-variation-settings:'FILL' 1,'wght' 400}
+
+/* Search bar */
+.search-bar{
+  width:100%;max-width:680px;position:relative;margin-bottom:12px;
+}
+.search-bar input{
+  width:100%;padding:12px 16px 12px 42px;
+  background:var(--bg-surface);border:1.5px solid var(--border);
+  border-radius:10px;color:var(--text-primary);
+  font-size:15px;font-family:inherit;font-weight:450;
+  outline:none;transition:all 200ms;
+}
+.search-bar input::placeholder{color:var(--text-muted)}
+.search-bar input:focus{border-color:var(--accent);background:var(--bg-raised);box-shadow:0 0 0 3px var(--accent-glow)}
+.search-bar .s-icon{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  font-size:20px;color:var(--text-muted);font-variation-settings:'wght' 300;
+  pointer-events:none;transition:color 150ms;
+}
+.search-bar input:focus~.s-icon{color:var(--accent)}
+.search-bar .s-kbd{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  display:flex;gap:3px;
+}
+.search-bar .s-kbd kbd{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  background:var(--bg-elevated);border:1px solid var(--border);
+  padding:2px 5px;border-radius:3px;color:var(--text-muted);
+}
+
+/* Scope chips */
+.scope-row{
+  display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;justify-content:center;
+}
+.scope-chip{
+  padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;
+  color:var(--text-tertiary);border:1px solid var(--border);background:none;
+  cursor:pointer;font-family:inherit;transition:all 100ms;
+  display:flex;align-items:center;gap:4px;
+}
+.scope-chip:hover{border-color:var(--border-light);color:var(--text-secondary);background:var(--bg-hover)}
+.scope-chip.on{border-color:var(--accent-border);color:var(--accent);background:var(--accent-glow)}
+.scope-chip .material-symbols-outlined{font-size:13px;font-variation-settings:'wght' 300,'FILL' 0}
+.scope-chip.on .material-symbols-outlined{font-variation-settings:'wght' 400,'FILL' 1}
+
+/* ═══ Results ═══ */
+.results-area{flex:1;overflow-y:auto;padding:8px 40px 40px}
+.results-area::-webkit-scrollbar{width:5px}
+.results-area::-webkit-scrollbar-track{background:transparent}
+.results-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.results-info{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 0 12px;
+}
+.ri-count{font-size:12px;color:var(--text-tertiary)}
+.ri-count strong{color:var(--text-secondary);font-weight:600}
+.ri-time{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted)}
+
+/* Category group */
+.result-group{margin-bottom:16px}
+.rg-header{
+  display:flex;align-items:center;gap:6px;padding:6px 0;
+  margin-bottom:4px;
+}
+.rg-header .material-symbols-outlined{font-size:16px;font-variation-settings:'wght' 400,'FILL' 1}
+.rg-header .rg-title{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:0.06em}
+.rg-header .rg-count{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted);background:var(--bg-active);padding:0 5px;border-radius:3px;height:15px;display:flex;align-items:center}
+
+.rg-items{display:flex;flex-direction:column;gap:2px}
+
+/* Result row */
+.result-row{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 12px;border-radius:var(--radius-sm);
+  cursor:pointer;transition:all 80ms;
+  border:1px solid transparent;
+}
+.result-row:hover{background:var(--bg-hover);border-color:var(--border)}
+.result-row.selected-r{background:var(--accent-glow);border-color:var(--accent-border)}
+
+.result-row .r-icon{
+  width:32px;height:32px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.result-row .r-icon .material-symbols-outlined{font-size:16px;color:#fff;font-variation-settings:'FILL' 1}
+
+.result-row .r-body{flex:1;min-width:0}
+.result-row .r-title{font-size:13px;font-weight:550;color:var(--text-primary);display:flex;align-items:center;gap:5px}
+.result-row .r-title mark{background:rgba(59,130,246,0.2);color:var(--accent);border-radius:2px;padding:0 1px;font-weight:650}
+.result-row .r-subtitle{font-size:11px;color:var(--text-tertiary);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.result-row .r-subtitle mark{background:rgba(59,130,246,0.15);color:var(--accent);border-radius:2px;padding:0 1px}
+
+.result-row .r-meta{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0}
+.result-row .r-case{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted)}
+.result-row .r-badge{font-size:8.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;padding:1px 5px;border-radius:2px}
+
+/* Result preview (expanded) */
+.result-preview{
+  margin:2px 0 6px 54px;padding:8px 12px;
+  background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+  font-size:11.5px;color:var(--text-tertiary);line-height:1.6;
+  display:none;
+}
+.result-preview.show{display:block;animation:fadeIn 150ms ease}
+.result-preview strong{color:var(--text-secondary);font-weight:550}
+.result-preview mark{background:rgba(59,130,246,0.15);color:var(--accent);border-radius:2px;padding:0 1px}
+.result-preview .rp-tags{display:flex;gap:4px;margin-top:6px}
+.result-preview .rp-tag{font-size:9px;font-weight:550;padding:2px 6px;border-radius:3px;display:inline-flex;align-items:center;gap:2px}
+.result-preview .rp-tag .material-symbols-outlined{font-size:10px}
+
+/* Action hint */
+.r-action{
+  font-size:9px;color:var(--text-muted);display:flex;align-items:center;gap:3px;
+  opacity:0;transition:opacity 100ms;
+}
+.result-row:hover .r-action{opacity:1}
+.r-action .material-symbols-outlined{font-size:11px;font-variation-settings:'wght' 400}
+
+/* Empty state */
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:80px 0;color:var(--text-muted);
+}
+.empty-state .material-symbols-outlined{font-size:48px;font-variation-settings:'wght' 100;margin-bottom:12px}
+.empty-state .es-title{font-size:14px;font-weight:550;color:var(--text-tertiary);margin-bottom:4px}
+.empty-state .es-desc{font-size:12px;color:var(--text-muted);text-align:center}
+
+/* Recent searches */
+.recent-section{margin-bottom:16px}
+.recent-title{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}
+.recent-item{
+  display:flex;align-items:center;gap:8px;padding:5px 8px;
+  border-radius:4px;cursor:pointer;transition:background 80ms;
+  font-size:12px;color:var(--text-tertiary);
+}
+.recent-item:hover{background:var(--bg-hover);color:var(--text-secondary)}
+.recent-item .material-symbols-outlined{font-size:14px;color:var(--text-muted);font-variation-settings:'wght' 300}
+.recent-item .ri-time{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted)}
+
+/* Keyboard hints bar */
+.kb-bar{
+  display:flex;align-items:center;justify-content:center;gap:16px;
+  padding:8px 0;border-top:1px solid var(--border);flex-shrink:0;
+  background:var(--bg-surface);
+}
+.kb-hint{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-muted)}
+.kb-hint kbd{font-family:'JetBrains Mono',monospace;font-size:9px;background:var(--bg-elevated);border:1px solid var(--border);padding:1px 4px;border-radius:2px}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand"><div class="bi"><span class="material-symbols-outlined">shield</span></div><span class="bt">AEGIS</span></div>
+    <div class="ss">
+      <div class="sl">Platform</div>
+      <a class="si" href="index.html"><span class="material-symbols-outlined">folder_managed</span>Investigations<span class="bd">12</span></a>
+      <a class="si" href="workspace.html"><span class="material-symbols-outlined">work</span>Workspace</a>
+      <a class="si" href="#"><span class="material-symbols-outlined">inventory_2</span>Evidence Library</a>
+      <a class="si" href="knowledge-graph.html"><span class="material-symbols-outlined">hub</span>Knowledge Graph</a>
+      <a class="si" href="timeline.html"><span class="material-symbols-outlined">timeline</span>Timeline</a>
+      <a class="si a" href="#"><span class="material-symbols-outlined">search</span>Search</a>
+    </div>
+    <div class="ss">
+      <div class="sl">Operations</div>
+      <a class="si" href="review.html"><span class="material-symbols-outlined">task_alt</span>Review Queue<span class="bd al">3</span></a>
+      <a class="si" href="processing.html"><span class="material-symbols-outlined">monitoring</span>Processing</a>
+      <a class="si" href="report.html"><span class="material-symbols-outlined">description</span>Reports</a>
+    </div>
+    <div class="sf"><div class="su"><div class="av">SC</div><div><div class="un">SSA Sarah Chen</div><div class="ur">Senior Analyst</div></div></div></div>
+  </aside>
+
+  <div class="main">
+    <!-- Search Header -->
+    <div class="search-header">
+      <div class="search-title">
+        <span class="material-symbols-outlined">search</span>
+        Investigation Search
+      </div>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search cases, evidence, people, vehicles, communications..." spellcheck="false" autofocus value="silver corolla"/>
+        <span class="material-symbols-outlined s-icon">search</span>
+        <div class="s-kbd"><kbd>⌘</kbd><kbd>K</kbd></div>
+      </div>
+      <div class="scope-row">
+        <button class="scope-chip on"><span class="material-symbols-outlined">select_all</span>All</button>
+        <button class="scope-chip" data-scope="cases"><span class="material-symbols-outlined">folder_managed</span>Cases</button>
+        <button class="scope-chip" data-scope="evidence"><span class="material-symbols-outlined">inventory_2</span>Evidence</button>
+        <button class="scope-chip" data-scope="people"><span class="material-symbols-outlined">person</span>People</button>
+        <button class="scope-chip" data-scope="vehicles"><span class="material-symbols-outlined">directions_car</span>Vehicles</button>
+        <button class="scope-chip" data-scope="phones"><span class="material-symbols-outlined">call</span>Phones</button>
+        <button class="scope-chip" data-scope="emails"><span class="material-symbols-outlined">mail</span>Emails</button>
+        <button class="scope-chip" data-scope="comms"><span class="material-symbols-outlined">chat</span>Chats</button>
+        <button class="scope-chip" data-scope="timeline"><span class="material-symbols-outlined">timeline</span>Timeline</button>
+        <button class="scope-chip" data-scope="reports"><span class="material-symbols-outlined">description</span>Reports</button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-area" id="resultsArea">
+      <div class="results-info">
+        <span class="ri-count"><strong>14 results</strong> for "silver corolla"</span>
+        <span class="ri-time">42ms</span>
+      </div>
+
+      <!-- Cases -->
+      <div class="result-group">
+        <div class="rg-header">
+          <span class="material-symbols-outlined" style="color:var(--accent)">folder_managed</span>
+          <span class="rg-title" style="color:var(--accent)">Cases</span>
+          <span class="rg-count">2</span>
+        </div>
+        <div class="rg-items">
+          <div class="result-row selected-r" onclick="togglePreview(this)">
+            <div class="r-icon" style="background:var(--accent)"><span class="material-symbols-outlined">folder_managed</span></div>
+            <div class="r-body">
+              <div class="r-title">Operation Nightfall — <mark>Silver Corolla</mark> surveillance</div>
+              <div class="r-subtitle">Critical priority · 847 evidence items · SSA Sarah Chen · Active</div>
+            </div>
+            <div class="r-meta">
+              <span class="r-case">INV-8492</span>
+              <span class="r-badge" style="color:var(--critical);background:var(--critical-bg);border:1px solid var(--critical-border)">Critical</span>
+            </div>
+          </div>
+          <div class="result-preview show">
+            <strong>Vehicle VEH-8821</strong> (<mark>silver Toyota Corolla</mark>) identified as primary vehicle of interest. Partial plate <strong>7X-A4**</strong> matches watchlist WL-4491. Connected to suspect John Doe and shell company Aegis Corp.
+            <div class="rp-tags">
+              <span class="rp-tag" style="color:var(--success);background:var(--success-bg);border:1px solid var(--success-border)"><span class="material-symbols-outlined">verified</span>4 approved findings</span>
+              <span class="rp-tag" style="color:var(--high);background:var(--high-bg);border:1px solid var(--high-border)"><span class="material-symbols-outlined">pending</span>1 pending review</span>
+            </div>
+          </div>
+
+          <div class="result-row" onclick="togglePreview(this)">
+            <div class="r-icon" style="background:var(--accent);opacity:0.6"><span class="material-symbols-outlined">folder_managed</span></div>
+            <div class="r-body">
+              <div class="r-title">Echo Syndicate — <mark>Corolla</mark> warehouse connection</div>
+              <div class="r-subtitle">Closed · 412 evidence items · SA Torres · Cross-case link to INV-8492</div>
+            </div>
+            <div class="r-meta">
+              <span class="r-case">INV-8301</span>
+              <span class="r-badge" style="color:var(--text-muted);background:var(--bg-active);border:1px solid var(--border)">Closed</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Evidence -->
+      <div class="result-group">
+        <div class="rg-header">
+          <span class="material-symbols-outlined" style="color:var(--cyan)">inventory_2</span>
+          <span class="rg-title" style="color:var(--cyan)">Evidence</span>
+          <span class="rg-count">5</span>
+        </div>
+        <div class="rg-items">
+          <div class="result-row" onclick="togglePreview(this)">
+            <div class="r-icon" style="background:var(--cyan)"><span class="material-symbols-outlined">image</span></div>
+            <div class="r-body">
+              <div class="r-title">IMG_023_alley_cam.jpg</div>
+              <div class="r-subtitle"><mark>Silver</mark> sedan in Sector 4G alley · 2023-10-27T03:14:22Z · Vehicle + person detected</div>
+            </div>
+            <div class="r-meta">
+              <span class="r-case">INV-8492</span>
+              <span class="r-action"><span class="material-symbols-outlined">open_in_new</span>Open in Workspace</span>
+            </div>
+          </div>
+          <div class="result-row" onclick="togglePreview(this)">
+            <div class="r-icon" style="background:var(--cyan)"><span class="material-symbols-outlined">image</span></div>
+            <div class="r-body">
+              <div class="r-title">IMG_024_parking_east.jpg</div>
+              <div class="r-subtitle"><mark>Silver Corolla</mark> exiting frame · EXIF stripped · Flagged for integrity review</div>
+            </div>
+            <div class="r-meta">
+              <span class="r-case">INV-8492</span>
+              <span class="r-badge" style="color:var(--critical);background:var(--critical-bg);border:1px solid var(--critical-border)">Flagged</span>
+            </div>
+          </div>
+          <div class="result-row" onclick="togglePreview(this)">
+            <div class="r-icon" style="background:var(--cyan)"><span class="material-symbols-outlined">videocam</span></div>
+            <div class="r-body">
+              <div class="r-title">VID_alley_cam_01.mp4</div>
+              <div class="r-subtitle"><mark>Silver</mark> vehicle enters at 00:12 · Continuous alley footage · 3 min duration</div>
+            </div>
+            <div class="r-meta"><span class="r-case">INV-8492</span><span class="r-action"><span class="material-symbols-outlined">open_in_new</span>Open</span></div>
+          </div>
+          <div class="result-row" onclick="togglePreview(this)">
+            <div class="r-icon" style="background:var(--cyan)"><span class="material-symbols-outlined">image</span></div>
+            <div class="r-body">
+              <div class="r-title">IMG_001_dock.jpg</div>
+              <div class="r-subtitle"><mark>Silver</mark> sedan at warehouse loading dock · First observation · 2023-10-14</div>
+            </div>
+            <div class="r-meta"><span class="r-case">INV-8301</span><span class="r-action"><span class="material-symbols-outlined">open_in_new</span>Open</span></div>
+          </div>
+          <div class="result-row" onclick="togglePreview(this)">
+            <div class="r-icon" style="background:var(--cyan)"><span class="material-symbols-outlined">data_object</span></div>
+            <div class="r-body">
+              <div class="r-title">watchlist_WL-4491.json</div>
+              <div class="r-subtitle">Active BOLO · <mark>Silver</mark> sedan · Partial plate 7X-A4** · Toyota <mark>Corolla</mark></div>
+            </div>
+            <div class="r-meta"><span class="r-case">SYSTEM</span><span class="r-action"><span class="material-symbols-outlined">open_in_new</span>Open</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vehicles -->
+      <div class="result-group">
+        <div class="rg-header">
+          <span class="material-symbols-outlined" style="color:var(--accent)">directions_car</span>
+          <span class="rg-title" style="color:var(--accent)">Vehicles</span>
+          <span class="rg-count">1</span>
+        </div>
+        <div class="rg-items">
+          <div class="result-row" onclick="togglePreview(this)">
+            <div class="r-icon" style="background:var(--accent)"><span class="material-symbols-outlined">directions_car</span></div>
+            <div class="r-body">
+              <div class="r-title">VEH-8821 · <mark>Silver</mark> Toyota <mark>Corolla</mark> (2019-2023)</div>
+              <div class="r-subtitle">Plate: 7X-A4** · Registered to John Doe · Watchlist WL-4491 · Seen 34 times</div>
+            </div>
+            <div class="r-meta">
+              <span class="r-case">INV-8492</span>
+              <span class="r-action"><span class="material-symbols-outlined">hub</span>View in Graph</span>
+            </div>
+          </div>
+          <div class="result-preview">
+            <strong>Entity: VEH-8821</strong> · Type: Vehicle · <mark>Silver Toyota Corolla</mark> (2019-2023 model range). Registered owner: <strong>John Doe</strong> (USR-992-817A). First observed <strong>Oct 14</strong> at warehouse loading dock. Last observed <strong>Oct 27 03:14Z</strong> at Sector 4G. Trajectory analysis shows <strong>6 unique locations</strong> visited over 13-day period.
+          </div>
+        </div>
+      </div>
+
+      <!-- People -->
+      <div class="result-group">
+        <div class="rg-header">
+          <span class="material-symbols-outlined" style="color:var(--orange)">person</span>
+          <span class="rg-title" style="color:var(--orange)">People</span>
+          <span class="rg-count">2</span>
+        </div>
+        <div class="rg-items">
+          <div class="result-row" onclick="togglePreview(this)">
+            <div class="r-icon" style="background:var(--orange)"><span class="material-symbols-outlined">person</span></div>
+            <div class="r-body">
+              <div class="r-title">John Doe — Owner of <mark>silver Corolla</mark></div>
+              <div class="r-subtitle">USR-992-817A · "J-Dog" / "The Architect" · Primary suspect · Active target</div>
+            </div>
+            <div class="r-meta">
+              <span class="r-case">INV-8492</span>
+              <span class="r-badge" style="color:var(--critical);background:var(--critical-bg);border:1px solid var(--critical-border)">Suspect</span>
+            </div>
+          </div>
+          <div class="result-row" onclick="togglePreview(this)">
+            <div class="r-icon" style="background:var(--orange);opacity:0.5"><span class="material-symbols-outlined">person</span></div>
+            <div class="r-body">
+              <div class="r-title">UNKNOWN_1 — Near <mark>silver</mark> vehicle</div>
+              <div class="r-subtitle">Unidentified male · ~180cm · Observed at Sector 4G · Possibly same as John Doe</div>
+            </div>
+            <div class="r-meta"><span class="r-case">INV-8492</span><span class="r-action"><span class="material-symbols-outlined">hub</span>View in Graph</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline Events -->
+      <div class="result-group">
+        <div class="rg-header">
+          <span class="material-symbols-outlined" style="color:var(--high)">timeline</span>
+          <span class="rg-title" style="color:var(--high)">Timeline Events</span>
+          <span class="rg-count">3</span>
+        </div>
+        <div class="rg-items">
+          <div class="result-row" onclick="togglePreview(this)">
+            <div class="r-icon" style="background:var(--high)"><span class="material-symbols-outlined">photo_camera</span></div>
+            <div class="r-body">
+              <div class="r-title"><mark>Silver Corolla</mark> observed at Sector 4G</div>
+              <div class="r-subtitle">Oct 27, 03:14Z · CCTV CAM_N_34A · Vehicle + plate match · AI confidence 97%</div>
+            </div>
+            <div class="r-meta"><span class="r-case">INV-8492</span><span class="r-action"><span class="material-symbols-outlined">timeline</span>View in Timeline</span></div>
+          </div>
+          <div class="result-row" onclick="togglePreview(this)">
+            <div class="r-icon" style="background:var(--high)"><span class="material-symbols-outlined">location_on</span></div>
+            <div class="r-body">
+              <div class="r-title"><mark>Silver</mark> sedan first observed at warehouse dock</div>
+              <div class="r-subtitle">Oct 14, 19:05Z · Perimeter camera · Earliest known sighting</div>
+            </div>
+            <div class="r-meta"><span class="r-case">INV-8492</span><span class="r-action"><span class="material-symbols-outlined">timeline</span>Timeline</span></div>
+          </div>
+          <div class="result-row" onclick="togglePreview(this)">
+            <div class="r-icon" style="background:var(--high)"><span class="material-symbols-outlined">psychology</span></div>
+            <div class="r-body">
+              <div class="r-title">AI Finding: <mark>Silver Toyota Corolla</mark> matched watchlist</div>
+              <div class="r-subtitle">Oct 27, 03:14Z · FND-0847 · vision.detection capability · Approved by SSA Chen</div>
+            </div>
+            <div class="r-meta"><span class="r-case">INV-8492</span><span class="r-action"><span class="material-symbols-outlined">task_alt</span>Review</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reports -->
+      <div class="result-group">
+        <div class="rg-header">
+          <span class="material-symbols-outlined" style="color:var(--pink)">description</span>
+          <span class="rg-title" style="color:var(--pink)">Reports</span>
+          <span class="rg-count">1</span>
+        </div>
+        <div class="rg-items">
+          <div class="result-row" onclick="togglePreview(this)">
+            <div class="r-icon" style="background:var(--pink)"><span class="material-symbols-outlined">description</span></div>
+            <div class="r-body">
+              <div class="r-title">Threat Assessment: Operation Nightfall</div>
+              <div class="r-subtitle">Draft · Mentions "<mark>silver Corolla</mark>" in §1 Executive Summary, §3 Key Findings, §5 Entities</div>
+            </div>
+            <div class="r-meta"><span class="r-case">RPT-8492-001</span><span class="r-action"><span class="material-symbols-outlined">open_in_new</span>Open Report</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Keyboard hints -->
+    <div class="kb-bar">
+      <div class="kb-hint"><kbd>↑</kbd><kbd>↓</kbd> Navigate</div>
+      <div class="kb-hint"><kbd>↵</kbd> Open</div>
+      <div class="kb-hint"><kbd>Tab</kbd> Preview</div>
+      <div class="kb-hint"><kbd>Esc</kbd> Clear</div>
+      <div class="kb-hint"><kbd>⌘</kbd><kbd>K</kbd> Focus search</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Scope chips
+  document.querySelectorAll('.scope-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const isAll = !chip.dataset.scope;
+      if (isAll) {
+        document.querySelectorAll('.scope-chip').forEach(c => c.classList.remove('on'));
+        chip.classList.add('on');
+      } else {
+        document.querySelector('.scope-chip:not([data-scope])')?.classList.remove('on');
+        chip.classList.toggle('on');
+        if (!document.querySelector('.scope-chip.on')) {
+          document.querySelector('.scope-chip:not([data-scope])').classList.add('on');
+        }
+      }
+    });
+  });
+
+  // Toggle preview
+  function togglePreview(row) {
+    document.querySelectorAll('.result-row').forEach(r => r.classList.remove('selected-r'));
+    row.classList.add('selected-r');
+    const preview = row.nextElementSibling;
+    if (preview && preview.classList.contains('result-preview')) {
+      preview.classList.toggle('show');
+    }
+  }
+
+  // Keyboard navigation
+  let selectedIdx = 0;
+  const rows = () => [...document.querySelectorAll('.result-row')];
+
+  document.addEventListener('keydown', e => {
+    const allRows = rows();
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectedIdx = Math.min(selectedIdx + 1, allRows.length - 1);
+      allRows.forEach(r => r.classList.remove('selected-r'));
+      allRows[selectedIdx]?.classList.add('selected-r');
+      allRows[selectedIdx]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectedIdx = Math.max(selectedIdx - 1, 0);
+      allRows.forEach(r => r.classList.remove('selected-r'));
+      allRows[selectedIdx]?.classList.add('selected-r');
+      allRows[selectedIdx]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    if (e.key === 'Escape') {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('searchInput').focus();
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      document.getElementById('searchInput').focus();
+      document.getElementById('searchInput').select();
+    }
+  });
+</script>
+<script src="nav.js"></script>`n</body>
+</html>
+
