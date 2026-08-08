@@ -1,8 +1,12 @@
 """
-AEGIS PoC — FastAPI Server
-Architecture v2: Background processing, capability registry, goal-driven, audit-logged.
+AEGIS — Investigation Intelligence Platform
+Architecture v3: Investigation Backbone with Execution Engine.
 
-Run: uvicorn main:app --reload --port 8000
+Runtime Flow:
+  Goal -> Planner -> Strategy -> Approval -> Execution Engine
+  -> Shared Context -> Correlation -> Discovery -> Leads -> Report
+
+Run: python -m uvicorn main:app --reload --port 8000
 """
 
 from __future__ import annotations
@@ -19,14 +23,30 @@ from PIL import Image
 import state
 from models import (
     Investigation, EvidenceItem, Finding, FindingStatus,
-    InvestigationStatus, TaskStatus, TimelineEvent, Priority,
-    GoalType, PipelineProgress
+    InvestigationState, InvestigationStatus, TaskStatus, TimelineEvent,
+    Priority, GoalType, PipelineProgress, InvestigationLead, DraftDocument,
+    Correlation, LeadStatus, DocumentType, SharedInvestigationContext,
+)
+from auth import (
+    Token, UserAuth, users_db, get_password_hash, verify_password, 
+    create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
 )
 from metadata import extract_metadata
 from vision import analyze_image
 from planner import generate_plan
-from graph import build_graph_from_evidence, get_graph_summary
+from graph import build_graph_from_evidence, get_graph_summary, add_entity_node, add_edge
 from report import generate_report
+
+# ─── Intelligence Capabilities ───────────────────────────────
+from vehicle_agent import analyze_vehicles, vehicle_to_entities
+from osint_agent import run_osint
+from communication_agent import auto_generate_documents
+from lead_generator import generate_leads
+from correlation import run_correlation_engine
+from discovery import run_discovery_engine
+from pdf_agent import analyze_pdf, document_to_entities
+from audio_agent import analyze_audio, audio_to_entities
+from video_agent import analyze_video
 
 
 # ─── Paths ───────────────────────────────────────────────────
@@ -41,8 +61,6 @@ THUMB_DIR.mkdir(exist_ok=True)
 
 
 # ─── Capability Registry ────────────────────────────────────
-# Maps capability names to handler functions.
-# New capabilities = add an entry. Backbone discovers them automatically.
 
 async def _cap_vision_analysis(ev: EvidenceItem, inv: Investigation) -> dict:
     """Analyze a single evidence image with Gemini Vision."""
@@ -56,7 +74,7 @@ async def _cap_vision_analysis(ev: EvidenceItem, inv: Investigation) -> dict:
 
 async def _cap_metadata_extraction(ev: EvidenceItem, inv: Investigation) -> dict:
     """Extract EXIF metadata from an evidence image."""
-    if ev.metadata:  # already extracted on upload
+    if ev.metadata:
         return {"status": "already_extracted", "has_gps": bool(ev.metadata.get("gps"))}
     parsed = extract_metadata(ev.file_path)
     ev.metadata = parsed.model_dump()
@@ -72,6 +90,56 @@ async def _cap_threat_assessment(ev: EvidenceItem, inv: Investigation) -> dict:
     """Check vision analysis for safety flags."""
     flags = ev.analysis.safety_flags if ev.analysis else []
     return {"safety_flags": flags, "flagged": len(flags) > 0}
+
+async def _cap_vehicle_analysis(ev: EvidenceItem, inv: Investigation) -> dict:
+    """Run specialized vehicle forensics on an image."""
+    vehicles = await analyze_vehicles(ev.file_path)
+    entities = vehicle_to_entities(vehicles)
+    # Add vehicle entities to graph
+    for entity in entities:
+        add_entity_node(entity, ev.id, inv.id)
+    return {
+        "vehicles_found": len(vehicles),
+        "plates_found": sum(1 for v in vehicles if v.registration_plate),
+        "vehicles": [{"brand": v.brand, "model": v.model, "color": v.color, "plate": v.registration_plate} for v in vehicles],
+    }
+
+async def _cap_pdf_analysis(ev: EvidenceItem, inv: Investigation) -> dict:
+    """Analyze a PDF document for investigative content."""
+    analysis = await analyze_pdf(ev.file_path)
+    entities = document_to_entities(analysis)
+    for entity in entities:
+        add_entity_node(entity, ev.id, inv.id)
+    return {
+        "names_found": len(analysis.names),
+        "phones_found": len(analysis.phone_numbers),
+        "emails_found": len(analysis.emails),
+        "summary": analysis.summary[:200],
+    }
+
+async def _cap_audio_analysis(ev: EvidenceItem, inv: Investigation) -> dict:
+    """Analyze audio evidence for transcript and entities."""
+    analysis = await analyze_audio(ev.file_path)
+    entities = audio_to_entities(analysis)
+    for entity in entities:
+        add_entity_node(entity, ev.id, inv.id)
+    ev.analysis_extra = {"audio": analysis.model_dump()}
+    return {
+        "speakers": analysis.speaker_count,
+        "keywords": analysis.keywords[:5],
+        "language": analysis.language,
+        "transcript_length": len(analysis.transcript),
+    }
+
+async def _cap_video_analysis(ev: EvidenceItem, inv: Investigation) -> dict:
+    """Analyze video evidence for entities and movements."""
+    analysis = await analyze_video(ev.file_path)
+    ev.analysis = analysis
+    return {
+        "entities": len(analysis.entities),
+        "requires_review": analysis.requires_review,
+        "description": analysis.description[:200],
+    }
 
 
 CAPABILITY_REGISTRY: dict[str, dict] = {
@@ -95,6 +163,26 @@ CAPABILITY_REGISTRY: dict[str, dict] = {
         "description": "Assess safety concerns and flag items for review",
         "evidence_types": ["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp"],
     },
+    "vehicle_analysis": {
+        "handler": _cap_vehicle_analysis,
+        "description": "Specialized vehicle forensics — make, model, color, registration plate",
+        "evidence_types": ["image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp"],
+    },
+    "pdf_analysis": {
+        "handler": _cap_pdf_analysis,
+        "description": "Extract text, names, dates, IDs from PDF documents",
+        "evidence_types": ["application/pdf"],
+    },
+    "audio_analysis": {
+        "handler": _cap_audio_analysis,
+        "description": "Transcribe and analyze audio evidence",
+        "evidence_types": ["audio/mpeg", "audio/mp3", "audio/wav", "audio/ogg", "audio/mp4", "audio/flac", "audio/aac"],
+    },
+    "video_analysis": {
+        "handler": _cap_video_analysis,
+        "description": "Analyze video for entities, movements, key moments",
+        "evidence_types": ["video/mp4", "video/x-msvideo", "video/quicktime", "video/x-matroska", "video/webm"],
+    },
 }
 
 
@@ -103,22 +191,26 @@ CAPABILITY_REGISTRY: dict[str, dict] = {
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("\n" + "="*60)
-    print("  AEGIS Investigation Intelligence Platform")
-    print("  Hackathon Proof of Concept -- v2.0 (Backbone Architecture)")
+    print("  AEGIS — Investigation Intelligence Platform")
+    print("  Investigation Backbone with Execution Engine")
     print("="*60)
     print(f"  API:          http://localhost:8000/api")
     print(f"  Frontend:     http://localhost:8000")
     print(f"  Docs:         http://localhost:8000/docs")
     api_key = os.environ.get("GEMINI_API_KEY", "")
-    print(f"  Gemini:       {'[OK] API key configured' if api_key else '[!!] GEMINI_API_KEY not set'}")
+    grok_key = os.environ.get("GROK_API_KEY", "")
+    print(f"  Gemini:       {'[OK]' if api_key else '[!!] NOT SET'}")
+    print(f"  Grok:         {'[OK]' if grok_key else '[--] Not configured'}")
     print(f"  Capabilities: {len(CAPABILITY_REGISTRY)} registered")
+    print(f"  Backbone:     Planner -> Execution Engine -> Shared Context")
+    print(f"                -> Correlation -> Discovery -> Leads -> Report")
     print("="*60 + "\n")
     yield
 
 app = FastAPI(
     title="AEGIS Investigation Intelligence Platform",
-    description="Hackathon PoC v2 — Investigation backbone with background AI processing",
-    version="2.0.0",
+    description="Investigation Backbone with Execution Engine — Goal-driven investigation workflow",
+    version="3.0.0",
     lifespan=lifespan,
 )
 
@@ -131,6 +223,40 @@ app.add_middleware(
 )
 
 
+# ─── API: Auth ──────────────────────────────────────────────────
+@app.post("/api/auth/register", response_model=Token, tags=["Auth"])
+async def register(user_auth: UserAuth):
+    if user_auth.username in users_db:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    hashed_password = get_password_hash(user_auth.password)
+    users_db[user_auth.username] = {
+        "username": user_auth.username,
+        "hashed_password": hashed_password
+    }
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user_auth.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.post("/api/auth/token", response_model=Token, tags=["Auth"])
+async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+    user = users_db.get(form_data.username)
+    if not user or not verify_password(form_data.password, user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user["username"]}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
 # ─── API: Investigations ─────────────────────────────────────
 
 @app.post("/api/investigations", tags=["Investigations"])
@@ -139,6 +265,7 @@ async def create_investigation(
     goal: str = Form(""),
     goal_type: str = Form("general"),
     priority: str = Form("medium"),
+    current_user: Annotated[dict, Depends(get_current_user)] = None,
 ):
     """Create a new investigation with a structured goal."""
     inv = Investigation(
@@ -146,9 +273,18 @@ async def create_investigation(
         goal=goal,
         goal_type=GoalType(goal_type) if goal_type in [g.value for g in GoalType] else GoalType.GENERAL,
         priority=Priority(priority) if priority in [p.value for p in Priority] else Priority.MEDIUM,
-        status=InvestigationStatus.CREATED,
+        state=InvestigationState.PLANNING,
     )
     state.investigations[inv.id] = inv
+
+    # Initialize shared context and memory
+    ctx = state.get_or_create_context(inv.id)
+    ctx.goal = goal
+    ctx.goal_type = inv.goal_type
+    memory = state.get_or_create_memory(inv.id)
+    memory.record("goal_set", inv.lead_investigator,
+                  f"Investigation created: {name}. Goal: {goal}",
+                  {"goal_type": goal_type, "priority": priority})
 
     state.log_audit(inv.id, inv.lead_investigator, "investigation_created",
                     "investigation", inv.id,
@@ -158,12 +294,12 @@ async def create_investigation(
 
 
 @app.get("/api/investigations", tags=["Investigations"])
-async def list_investigations():
+async def list_investigations(current_user: Annotated[dict, Depends(get_current_user)]):
     return list(state.investigations.values())
 
 
 @app.get("/api/investigations/{inv_id}", tags=["Investigations"])
-async def get_investigation(inv_id: str):
+async def get_investigation(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     inv = state.get_investigation(inv_id)
     if not inv:
         raise HTTPException(404, "Investigation not found")
@@ -173,19 +309,18 @@ async def get_investigation(inv_id: str):
 # ─── API: Evidence Upload ────────────────────────────────────
 
 @app.post("/api/investigations/{inv_id}/evidence", tags=["Evidence"])
-async def upload_evidence(inv_id: str, files: list[UploadFile] = File(...)):
+async def upload_evidence(
+    inv_id: str, 
+    current_user: Annotated[dict, Depends(get_current_user)],
+    files: list[UploadFile] = File(...)
+):
     """Upload evidence files. Metadata extracted immediately. AI runs later."""
     inv = state.get_investigation(inv_id)
     if not inv:
         raise HTTPException(404, "Investigation not found")
 
-    # Transition to evidence intake
-    if inv.status == InvestigationStatus.CREATED:
-        inv.status = InvestigationStatus.EVIDENCE_INTAKE
-
     results = []
     for f in files:
-        # Save file
         inv_dir = UPLOAD_DIR / inv_id
         inv_dir.mkdir(exist_ok=True)
         file_path = inv_dir / f.filename
@@ -193,10 +328,9 @@ async def upload_evidence(inv_id: str, files: list[UploadFile] = File(...)):
         with open(file_path, "wb") as fp:
             fp.write(content)
 
-        # Compute SHA-256
         sha = hashlib.sha256(content).hexdigest()
 
-        # Generate thumbnail
+        # Generate thumbnail for images
         thumb_path = ""
         mime = mimetypes.guess_type(f.filename)[0] or "application/octet-stream"
         if mime.startswith("image/"):
@@ -211,13 +345,15 @@ async def upload_evidence(inv_id: str, files: list[UploadFile] = File(...)):
             except Exception:
                 pass
 
-        # Extract EXIF metadata immediately (no AI needed)
+        # Extract EXIF metadata immediately for images
         meta_result = {}
         if mime.startswith("image/"):
-            parsed = extract_metadata(str(file_path))
-            meta_result = parsed.model_dump()
+            try:
+                parsed = extract_metadata(str(file_path))
+                meta_result = parsed.model_dump()
+            except Exception:
+                pass
 
-        # Create evidence record
         ev = EvidenceItem(
             investigation_id=inv_id,
             filename=f.filename,
@@ -231,10 +367,9 @@ async def upload_evidence(inv_id: str, files: list[UploadFile] = File(...)):
         state.evidence[ev.id] = ev
         inv.evidence_ids.append(ev.id)
 
-        # Timeline: evidence uploaded
         tl = TimelineEvent(
             investigation_id=inv_id,
-            timestamp=meta_result.get("timestamp", ev.uploaded_at),
+            timestamp=meta_result.get("timestamp") or ev.uploaded_at,
             title=f"Evidence uploaded: {f.filename}",
             description=f"File uploaded ({mime}, {len(content)} bytes). SHA-256: {sha[:16]}...",
             event_type="evidence_uploaded",
@@ -244,7 +379,6 @@ async def upload_evidence(inv_id: str, files: list[UploadFile] = File(...)):
         )
         state.timeline_events[tl.id] = tl
 
-        # Audit
         state.log_audit(inv_id, inv.lead_investigator, "evidence_uploaded",
                         "evidence", ev.id,
                         f"{f.filename} ({mime}, {len(content)} bytes, SHA-256: {sha[:16]}...)")
@@ -260,12 +394,12 @@ async def upload_evidence(inv_id: str, files: list[UploadFile] = File(...)):
 
 
 @app.get("/api/investigations/{inv_id}/evidence", tags=["Evidence"])
-async def list_evidence(inv_id: str):
+async def list_evidence(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     return state.get_evidence_for_investigation(inv_id)
 
 
 @app.get("/api/evidence/{ev_id}/file", tags=["Evidence"])
-async def get_evidence_file(ev_id: str):
+async def get_evidence_file(ev_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     ev = state.evidence.get(ev_id)
     if not ev:
         raise HTTPException(404, "Evidence not found")
@@ -273,7 +407,7 @@ async def get_evidence_file(ev_id: str):
 
 
 @app.get("/api/evidence/{ev_id}/thumbnail", tags=["Evidence"])
-async def get_evidence_thumbnail(ev_id: str):
+async def get_evidence_thumbnail(ev_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     ev = state.evidence.get(ev_id)
     if not ev or not ev.thumbnail_path:
         raise HTTPException(404, "Thumbnail not found")
@@ -283,7 +417,7 @@ async def get_evidence_thumbnail(ev_id: str):
 # ─── API: Plan ───────────────────────────────────────────────
 
 @app.post("/api/investigations/{inv_id}/plan", tags=["Planner"])
-async def create_plan(inv_id: str):
+async def create_plan(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     """Generate an investigation plan. Investigator must approve before execution."""
     inv = state.get_investigation(inv_id)
     if not inv:
@@ -297,21 +431,27 @@ async def create_plan(inv_id: str):
     plan = await generate_plan(inv_id, inv.goal, evidence_items)
     state.plans[plan.id] = plan
     inv.plan_id = plan.id
-    inv.status = InvestigationStatus.PLAN_REVIEW
+    state.transition_state(inv_id, InvestigationState.AWAITING_APPROVAL, "backbone")
 
-    state.log_audit(inv_id, "backbone", "plan_generated",
+    # Record strategy in memory
+    memory = state.get_or_create_memory(inv_id)
+    memory.record("strategy_generated", "backbone",
+                  f"Strategy: {len(plan.phases)} phases, capabilities: {plan.capabilities_selected}",
+                  {"plan_id": plan.id, "phases": len(plan.phases)})
+
+    state.log_audit(inv_id, "backbone", "strategy_generated",
                     "plan", plan.id,
-                    f"Generated plan with {len(plan.phases)} phases, capabilities: {plan.capabilities_selected}")
+                    f"Generated strategy with {len(plan.phases)} phases, capabilities: {plan.capabilities_selected}")
 
     state.broadcast_sse(inv_id, {
-        "type": "plan_generated",
-        "data": {"plan_id": plan.id, "status": "awaiting_approval"},
+        "type": "strategy_generated",
+        "data": {"plan_id": plan.id, "state": "awaiting_approval"},
     })
     return plan
 
 
 @app.post("/api/plans/{plan_id}/approve", tags=["Planner"])
-async def approve_plan(plan_id: str):
+async def approve_plan(plan_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     """Approve the plan and trigger background pipeline execution."""
     plan = state.plans.get(plan_id)
     if not plan:
@@ -321,130 +461,161 @@ async def approve_plan(plan_id: str):
     if not inv:
         raise HTTPException(404, "Investigation not found")
 
-    # Mark approved
     plan.approved = True
     plan.approved_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
     plan.approved_by = inv.lead_investigator
 
-    state.log_audit(plan.investigation_id, inv.lead_investigator, "plan_approved",
-                    "plan", plan_id,
-                    "Investigation plan approved. Pipeline execution starting.")
+    state.transition_state(plan.investigation_id, InvestigationState.RUNNING, inv.lead_investigator)
 
-    # Trigger background pipeline execution
+    # Record investigator decision in memory
+    memory = state.get_or_create_memory(plan.investigation_id)
+    memory.record("human_decision", inv.lead_investigator,
+                  "Strategy approved. Execution engine starting.",
+                  {"plan_id": plan_id, "decision": "approved"})
+
     asyncio.create_task(_execute_pipeline_background(plan.investigation_id))
 
     return {
         "approved": True,
         "plan_id": plan_id,
-        "message": "Plan approved. Analysis pipeline running in background.",
+        "message": "Strategy approved. Execution engine running in background.",
     }
 
 
 @app.get("/api/plans/{plan_id}", tags=["Planner"])
-async def get_plan(plan_id: str):
+async def get_plan(plan_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     plan = state.plans.get(plan_id)
     if not plan:
         raise HTTPException(404, "Plan not found")
     return plan
 
 
-# ─── Background Pipeline Execution ──────────────────────────
+# ─── Execution Engine ────────────────────────────────────────
 
 async def _execute_pipeline_background(inv_id: str):
     """
-    Execute the full analysis pipeline as a background task.
-    The investigator's request returns immediately.
-    Progress streams via SSE.
+    AEGIS Execution Engine — backbone-driven investigation pipeline.
+    
+    Runtime Flow:
+    1. Parallel Capability Execution (per evidence item)
+       - Image Intelligence    - Vehicle Intelligence
+       - Document Intelligence - Audio Intelligence
+       - Video Intelligence    - Metadata Intelligence
+    2. Shared Investigation Context (populate)
+    3. Knowledge Graph + Timeline
+    4. Open Source Intelligence
+    5. Correlation Engine
+    6. Discovery Engine (finds what wasn't asked)
+    7. Lead Intelligence + Communication Services (parallel)
+    8. State -> REVIEW_REQUIRED
     """
     inv = state.get_investigation(inv_id)
     if not inv:
         return
 
-    inv.status = InvestigationStatus.PROCESSING
-    evidence_items = state.get_evidence_for_investigation(inv_id)
-    image_items = [e for e in evidence_items if e.mime_type.startswith("image/")]
+    # Ensure state is RUNNING
+    if inv.state != InvestigationState.RUNNING:
+        state.transition_state(inv_id, InvestigationState.RUNNING, "backbone")
 
-    # Initialize progress tracker
-    total_tasks = len(image_items) * 3  # vision + graph + timeline per image
+    # Get shared context
+    ctx = state.get_or_create_context(inv_id)
+    memory = state.get_or_create_memory(inv_id)
+    evidence_items = state.get_evidence_for_investigation(inv_id)
+
+    # Categorize evidence by type
+    image_items = [e for e in evidence_items if e.mime_type.startswith("image/")]
+    pdf_items = [e for e in evidence_items if e.mime_type == "application/pdf"]
+    audio_items = [e for e in evidence_items if e.mime_type.startswith("audio/")]
+    video_items = [e for e in evidence_items if e.mime_type.startswith("video/")]
+
+    # Calculate total tasks
+    total_tasks = (
+        len(image_items) * 3 +  # vision + vehicle + graph per image
+        len(pdf_items) +         # pdf analysis
+        len(audio_items) +       # audio analysis
+        len(video_items) +       # video analysis
+        3                        # osint + correlation + leads
+    )
+
     progress = PipelineProgress(
         investigation_id=inv_id,
         status="running",
-        total_tasks=total_tasks,
+        total_tasks=max(total_tasks, 1),
         started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
     )
     state.pipeline_progress[inv_id] = progress
 
     state.broadcast_sse(inv_id, {
         "type": "pipeline_started",
-        "data": {"total_evidence": len(image_items), "total_tasks": total_tasks},
+        "data": {
+            "total_evidence": len(evidence_items),
+            "total_tasks": total_tasks,
+            "capabilities": ["image_intelligence", "vehicle_intelligence", "metadata",
+                             "document_intelligence", "audio_intelligence", "video_intelligence",
+                             "osint", "correlation", "discovery", "leads"],
+        },
     })
 
-    state.log_audit(inv_id, "backbone", "pipeline_started",
+    state.log_audit(inv_id, "backbone", "execution_started",
                     "investigation", inv_id,
-                    f"Background pipeline started. {len(image_items)} images, {total_tasks} tasks.")
+                    f"Execution engine started. {len(evidence_items)} evidence items, {total_tasks} tasks.")
+    memory.record("capability_result", "backbone",
+                  f"Execution engine started with {len(evidence_items)} evidence items")
 
     completed = 0
 
+    # ════════════════════════════════════════════════════════════
+    # PHASE 1: Parallel Capability Execution
+    # ════════════════════════════════════════════════════════════
+
+    state.broadcast_sse(inv_id, {"type": "phase_started", "data": {"phase": "Capability Execution", "phase_number": 1}})
+
+    # Process images: Vision + Vehicle in parallel per image
     for ev in image_items:
-        # ── Step 1: Vision Analysis ──
-        progress.current_task = f"Vision analysis: {ev.filename}"
+        progress.current_task = f"Analyzing image: {ev.filename}"
         state.broadcast_sse(inv_id, {
             "type": "task_started",
-            "data": {"capability": "vision_analysis", "evidence_id": ev.id, "filename": ev.filename},
+            "data": {"capability": "multi_agent", "evidence_id": ev.id, "filename": ev.filename,
+                     "agents": ["vision", "vehicle", "metadata"]},
         })
 
         t0 = time.time()
+
+        # Run vision + vehicle analysis in PARALLEL
         try:
-            cap = CAPABILITY_REGISTRY["vision_analysis"]
-            result = await cap["handler"](ev, inv)
+            vision_task = asyncio.create_task(_safe_run(_cap_vision_analysis, ev, inv, "vision_analysis"))
+            vehicle_task = asyncio.create_task(_safe_run(_cap_vehicle_analysis, ev, inv, "vehicle_analysis"))
+
+            vision_result, vehicle_result = await asyncio.gather(vision_task, vehicle_task)
+
             duration = int((time.time() - t0) * 1000)
 
             state.broadcast_sse(inv_id, {
                 "type": "task_completed",
                 "data": {
-                    "capability": "vision_analysis", "evidence_id": ev.id,
-                    "filename": ev.filename, "duration_ms": duration, **result,
+                    "capability": "multi_agent", "evidence_id": ev.id,
+                    "filename": ev.filename, "duration_ms": duration,
+                    "vision": vision_result, "vehicle": vehicle_result,
                 },
             })
         except Exception as ex:
             state.broadcast_sse(inv_id, {
                 "type": "task_failed",
-                "data": {"capability": "vision_analysis", "evidence_id": ev.id, "error": str(ex)},
+                "data": {"capability": "multi_agent", "evidence_id": ev.id, "error": str(ex)},
             })
 
-        completed += 1
+        completed += 2
         progress.completed_tasks = completed
 
-        # ── Step 2: Graph Construction ──
-        progress.current_task = f"Graph construction: {ev.filename}"
+        # Graph construction
         try:
-            cap = CAPABILITY_REGISTRY["graph_construction"]
-            await cap["handler"](ev, inv)
+            await _cap_graph_construction(ev, inv)
         except Exception:
             pass
-
         completed += 1
         progress.completed_tasks = completed
 
-        # ── Step 3: Timeline event from photo timestamp ──
-        progress.current_task = f"Timeline: {ev.filename}"
-        if ev.metadata.get("timestamp") and ev.analysis:
-            tl = TimelineEvent(
-                investigation_id=inv_id,
-                timestamp=ev.metadata["timestamp"],
-                title=f"Photo taken: {ev.filename}",
-                description=ev.analysis.description[:200] if ev.analysis.description else "",
-                event_type="photo_taken",
-                evidence_id=ev.id,
-                gps=ev.metadata.get("gps"),
-                actor="backbone",
-            )
-            state.timeline_events[tl.id] = tl
-
-        completed += 1
-        progress.completed_tasks = completed
-
-        # ── Generate Finding ──
+        # Generate Finding from vision analysis
         if ev.analysis and (ev.analysis.requires_review or ev.analysis.entities):
             finding = Finding(
                 investigation_id=inv_id,
@@ -460,44 +631,298 @@ async def _execute_pipeline_background(inv_id: str):
             state.findings[finding.id] = finding
             inv.finding_ids.append(finding.id)
 
-            state.log_audit(inv_id, "gemini", "finding_generated",
-                            "finding", finding.id,
-                            f"{finding.title} (confidence: {finding.confidence:.0%}, review: {finding.requires_review})")
-
             state.broadcast_sse(inv_id, {
                 "type": "finding_generated",
                 "data": {"finding_id": finding.id, "title": finding.title, "confidence": finding.confidence},
             })
 
+        # Timeline from photo timestamp
+        if ev.metadata.get("timestamp") and ev.analysis:
+            tl = TimelineEvent(
+                investigation_id=inv_id,
+                timestamp=ev.metadata["timestamp"],
+                title=f"Photo taken: {ev.filename}",
+                description=ev.analysis.description[:200] if ev.analysis.description else "",
+                event_type="photo_taken",
+                evidence_id=ev.id,
+                gps=ev.metadata.get("gps"),
+                actor="backbone",
+            )
+            state.timeline_events[tl.id] = tl
+
         # Progress update
+        _broadcast_progress(inv_id, completed, total_tasks)
+
+    # Process PDFs in parallel
+    if pdf_items:
+        state.broadcast_sse(inv_id, {"type": "task_started", "data": {"capability": "pdf_analysis", "count": len(pdf_items)}})
+        pdf_tasks = [_safe_run(_cap_pdf_analysis, ev, inv, "pdf_analysis") for ev in pdf_items]
+        await asyncio.gather(*pdf_tasks)
+        completed += len(pdf_items)
+        progress.completed_tasks = completed
+        _broadcast_progress(inv_id, completed, total_tasks)
+
+    # Process audio files
+    for ev in audio_items:
+        progress.current_task = f"Analyzing audio: {ev.filename}"
+        state.broadcast_sse(inv_id, {"type": "task_started", "data": {"capability": "audio_analysis", "filename": ev.filename}})
+        try:
+            await _cap_audio_analysis(ev, inv)
+        except Exception:
+            pass
+        completed += 1
+        progress.completed_tasks = completed
+        _broadcast_progress(inv_id, completed, total_tasks)
+
+    # Process video files
+    for ev in video_items:
+        progress.current_task = f"Analyzing video: {ev.filename}"
+        state.broadcast_sse(inv_id, {"type": "task_started", "data": {"capability": "video_analysis", "filename": ev.filename}})
+        try:
+            await _cap_video_analysis(ev, inv)
+            # Build graph from video analysis
+            if ev.analysis:
+                build_graph_from_evidence(ev)
+                # Generate finding
+                finding = Finding(
+                    investigation_id=inv_id,
+                    title=f"Video Analysis: {ev.filename}",
+                    description=ev.analysis.description,
+                    confidence=max((e.confidence for e in ev.analysis.entities), default=0),
+                    evidence_ids=[ev.id],
+                    entities=ev.analysis.entities,
+                    reasoning=ev.analysis.reasoning,
+                    requires_review=ev.analysis.requires_review,
+                    review_reason=ev.analysis.review_reason,
+                )
+                state.findings[finding.id] = finding
+                inv.finding_ids.append(finding.id)
+        except Exception:
+            pass
+        completed += 1
+        progress.completed_tasks = completed
+        _broadcast_progress(inv_id, completed, total_tasks)
+
+    # ════════════════════════════════════════════════════════════
+    # PHASE 2: OSINT Intelligence
+    # ════════════════════════════════════════════════════════════
+
+    state.broadcast_sse(inv_id, {"type": "phase_started", "data": {"phase": "OSINT Intelligence", "phase_number": 2}})
+    progress.current_task = "Running OSINT intelligence gathering"
+
+    # Gather all entities from graph
+    all_entities = [
+        {"type": n.type.value, "description": n.label, "confidence": n.confidence, "details": str(n.properties)}
+        for n in state.graph_nodes.values() if n.investigation_id == inv_id
+    ]
+
+    osint_data = None
+    if all_entities:
+        try:
+            osint_data = await run_osint(inv.goal, all_entities[:20])  # Limit to top 20 entities
+            state.broadcast_sse(inv_id, {
+                "type": "osint_complete",
+                "data": {
+                    "reports": len(osint_data.get("intelligence_reports", [])),
+                    "connections": len(osint_data.get("cross_entity_connections", [])),
+                },
+            })
+        except Exception as ex:
+            state.broadcast_sse(inv_id, {"type": "osint_failed", "data": {"error": str(ex)}})
+
+    completed += 1
+    progress.completed_tasks = completed
+    _broadcast_progress(inv_id, completed, total_tasks)
+
+    # ════════════════════════════════════════════════════════════
+    # PHASE 3: Correlation Engine
+    # ════════════════════════════════════════════════════════════
+
+    state.broadcast_sse(inv_id, {"type": "phase_started", "data": {"phase": "Correlation Analysis", "phase_number": 3}})
+    progress.current_task = "Running cross-evidence correlation engine"
+
+    try:
+        correlations = await run_correlation_engine(inv_id, inv.goal, osint_data)
+        for cor in correlations:
+            state.correlations[cor.id] = cor
+
         state.broadcast_sse(inv_id, {
-            "type": "pipeline_progress",
-            "data": {"completed": completed, "total": total_tasks,
-                     "percent": round(completed / total_tasks * 100) if total_tasks else 0},
+            "type": "correlation_complete",
+            "data": {"correlations_found": len(correlations)},
+        })
+    except Exception as ex:
+        state.broadcast_sse(inv_id, {"type": "correlation_failed", "data": {"error": str(ex)}})
+
+    completed += 1
+    progress.completed_tasks = completed
+    _broadcast_progress(inv_id, completed, total_tasks)
+
+    # ════════════════════════════════════════════════════════════
+    # PHASE 4: Discovery Engine (finds what wasn't asked)
+    # ════════════════════════════════════════════════════════════
+
+    state.broadcast_sse(inv_id, {"type": "phase_started", "data": {"phase": "Discovery Engine", "phase_number": 4}})
+    progress.current_task = "Discovery Engine — finding what wasn't asked"
+
+    # Populate shared context before discovery
+    ctx.entities = [
+        {"type": n.type.value, "description": n.label, "confidence": n.confidence, "details": str(n.properties)}
+        for n in state.graph_nodes.values() if n.investigation_id == inv_id
+    ]
+    ctx.vehicle_intelligence = [
+        e.analysis_extra.get("vehicle", {}) for e in evidence_items
+        if e.analysis_extra.get("vehicle")
+    ]
+    ctx.person_intelligence = [
+        {"type": n.type.value, "description": n.label, "confidence": n.confidence}
+        for n in state.graph_nodes.values()
+        if n.investigation_id == inv_id and n.type.value == "Person"
+    ]
+    ctx.locations = [
+        {"description": n.label, "gps": n.properties.get("gps", "N/A")}
+        for n in state.graph_nodes.values()
+        if n.investigation_id == inv_id and n.type.value == "Location"
+    ]
+    ctx.correlations = [
+        {"entity_a_label": c.entity_a_label, "entity_b_label": c.entity_b_label,
+         "relationship": c.relationship, "confidence": c.confidence, "reasoning": c.reasoning}
+        for c in state.correlations.values() if c.investigation_id == inv_id
+    ]
+    ctx.capabilities_executed = ["image_intelligence", "vehicle_intelligence", "metadata",
+                                 "osint", "correlation"]
+
+    try:
+        discovery_result = await run_discovery_engine(ctx)
+        discoveries_count = len(discovery_result.get("discoveries", []))
+        risk_level = discovery_result.get("risk_assessment", {}).get("overall_threat_level", "unknown")
+
+        # Record discoveries in memory
+        memory.record("discovery_made", "discovery_engine",
+                      f"Found {discoveries_count} discoveries. Risk: {risk_level}",
+                      {"discoveries_count": discoveries_count, "risk_level": risk_level})
+
+        state.broadcast_sse(inv_id, {
+            "type": "discovery_complete",
+            "data": {
+                "discoveries_found": discoveries_count,
+                "risk_level": risk_level,
+                "patterns": len(discovery_result.get("patterns", [])),
+                "gaps_identified": len(discovery_result.get("investigation_gaps", [])),
+            },
+        })
+    except Exception as ex:
+        state.broadcast_sse(inv_id, {"type": "discovery_failed", "data": {"error": str(ex)}})
+
+    completed += 1
+    progress.completed_tasks = completed
+    _broadcast_progress(inv_id, completed, total_tasks)
+
+    # ════════════════════════════════════════════════════════════
+    # PHASE 5: Lead Intelligence & Communication Services (parallel)
+    # ════════════════════════════════════════════════════════════
+
+    state.broadcast_sse(inv_id, {"type": "phase_started", "data": {"phase": "Intelligence Synthesis", "phase_number": 5}})
+    progress.current_task = "Generating leads and drafting documents"
+
+    # Prepare context for leads and documents
+    inv_context = {
+        "id": inv.id, "name": inv.name, "goal": inv.goal,
+        "lead_investigator": inv.lead_investigator,
+        "classification": inv.classification,
+        "priority": inv.priority.value,
+    }
+
+    evidence_dicts = [
+        {"filename": e.filename, "mime_type": e.mime_type, "sha256": e.sha256,
+         "gps": str(e.metadata.get("gps", "N/A")), "timestamp": e.metadata.get("timestamp", "N/A")}
+        for e in evidence_items
+    ]
+
+    entities_dicts = [
+        {"type": n.type.value, "description": n.label, "confidence": n.confidence, "details": str(n.properties)}
+        for n in state.graph_nodes.values() if n.investigation_id == inv_id
+    ]
+
+    findings_dicts = [
+        {"title": f.title, "description": f.description, "confidence": f.confidence}
+        for f in state.get_findings_for_investigation(inv_id)
+    ]
+
+    timeline_dicts = [
+        {"timestamp": t.timestamp, "title": t.title, "description": t.description}
+        for t in state.get_timeline_for_investigation(inv_id)
+    ]
+
+    # Run lead generation and document drafting IN PARALLEL
+    try:
+        leads_task = asyncio.create_task(
+            generate_leads(inv_context, evidence_dicts, entities_dicts, findings_dicts, osint_data)
+        )
+        docs_task = asyncio.create_task(
+            auto_generate_documents(inv_context, entities_dicts, findings_dicts, evidence_dicts, timeline_dicts)
+        )
+
+        leads_result, docs_result = await asyncio.gather(leads_task, docs_task)
+
+        # Store leads
+        for lead in leads_result:
+            state.leads[lead.id] = lead
+
+        # Store documents
+        for doc in docs_result:
+            state.draft_documents[doc.id] = doc
+
+        state.broadcast_sse(inv_id, {
+            "type": "synthesis_complete",
+            "data": {
+                "leads_generated": len(leads_result),
+                "documents_drafted": len(docs_result),
+            },
         })
 
-    # Pipeline complete
+    except Exception as ex:
+        state.broadcast_sse(inv_id, {"type": "synthesis_failed", "data": {"error": str(ex)}})
+
+    completed += 1
+    progress.completed_tasks = completed
+
+    # ════════════════════════════════════════════════════════════
+    # PIPELINE COMPLETE
+    # ════════════════════════════════════════════════════════════
+
     progress.status = "complete"
     progress.completed_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
     progress.results = {
-        "analyzed": len(image_items),
+        "analyzed": len(evidence_items),
         "findings": len(state.get_findings_for_investigation(inv_id)),
         "graph": get_graph_summary(inv_id),
+        "leads": len(state.get_leads_for_investigation(inv_id)),
+        "documents": len(state.get_documents_for_investigation(inv_id)),
+        "correlations": len(state.get_correlations_for_investigation(inv_id)),
+        "discoveries": len(ctx.discoveries),
     }
 
-    inv.status = InvestigationStatus.FINDINGS_REVIEW
+    # State Machine: RUNNING -> REVIEW_REQUIRED
+    state.transition_state(inv_id, InvestigationState.REVIEW_REQUIRED, "backbone")
+    memory.record("capability_result", "backbone",
+                  f"Execution complete. {progress.results['findings']} findings, "
+                  f"{progress.results['leads']} leads, {progress.results['discoveries']} discoveries.",
+                  progress.results)
 
-    state.log_audit(inv_id, "backbone", "pipeline_completed",
+    state.log_audit(inv_id, "backbone", "execution_complete",
                     "investigation", inv_id,
-                    f"Pipeline complete. {len(image_items)} images analyzed, "
-                    f"{progress.results['findings']} findings generated.")
+                    f"Execution engine complete. {len(evidence_items)} items analyzed, "
+                    f"{progress.results['findings']} findings, "
+                    f"{progress.results['leads']} leads, "
+                    f"{progress.results['discoveries']} discoveries.")
 
     # Timeline: analysis complete
     tl = TimelineEvent(
         investigation_id=inv_id,
         timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        title="AI analysis complete",
-        description=f"Analyzed {len(image_items)} images. {progress.results['findings']} findings await review.",
+        title="Investigation analysis complete",
+        description=f"Analyzed {len(evidence_items)} items. {progress.results['findings']} findings, "
+                    f"{progress.results['leads']} leads, {progress.results['discoveries']} discoveries.",
         event_type="pipeline_complete",
         actor="backbone",
     )
@@ -509,10 +934,31 @@ async def _execute_pipeline_background(inv_id: str):
     })
 
 
+async def _safe_run(handler, ev, inv, cap_name):
+    """Run a capability handler safely, catching all exceptions."""
+    try:
+        return await handler(ev, inv)
+    except Exception as ex:
+        state.broadcast_sse(inv.id, {
+            "type": "task_failed",
+            "data": {"capability": cap_name, "evidence_id": ev.id, "error": str(ex)},
+        })
+        return {"error": str(ex)}
+
+
+def _broadcast_progress(inv_id, completed, total):
+    """Send pipeline progress update via SSE."""
+    state.broadcast_sse(inv_id, {
+        "type": "pipeline_progress",
+        "data": {"completed": completed, "total": total,
+                 "percent": round(completed / total * 100) if total else 0},
+    })
+
+
 # ─── API: Pipeline Status ───────────────────────────────────
 
 @app.get("/api/investigations/{inv_id}/pipeline", tags=["Pipeline"])
-async def get_pipeline_status(inv_id: str):
+async def get_pipeline_status(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     """Get background pipeline execution status."""
     progress = state.pipeline_progress.get(inv_id)
     if not progress:
@@ -523,12 +969,12 @@ async def get_pipeline_status(inv_id: str):
 # ─── API: Findings ───────────────────────────────────────────
 
 @app.get("/api/investigations/{inv_id}/findings", tags=["Findings"])
-async def list_findings(inv_id: str):
+async def list_findings(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     return state.get_findings_for_investigation(inv_id)
 
 
 @app.post("/api/findings/{finding_id}/approve", tags=["Findings"])
-async def approve_finding(finding_id: str, notes: str = Form("")):
+async def approve_finding(finding_id: str, notes: str = Form(""), current_user: Annotated[dict, Depends(get_current_user)] = None):
     """Investigator approves an AI finding."""
     f = state.findings.get(finding_id)
     if not f:
@@ -551,7 +997,7 @@ async def approve_finding(finding_id: str, notes: str = Form("")):
 
 
 @app.post("/api/findings/{finding_id}/reject", tags=["Findings"])
-async def reject_finding(finding_id: str, notes: str = Form("")):
+async def reject_finding(finding_id: str, notes: str = Form(""), current_user: Annotated[dict, Depends(get_current_user)] = None):
     """Investigator rejects an AI finding with rationale."""
     f = state.findings.get(finding_id)
     if not f:
@@ -573,10 +1019,99 @@ async def reject_finding(finding_id: str, notes: str = Form("")):
     return f
 
 
+# ─── API: Investigation Leads ───────────────────────────────
+
+@app.get("/api/investigations/{inv_id}/leads", tags=["Leads"])
+async def list_leads(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
+    """Get all investigation leads (AI-suggested next actions)."""
+    return state.get_leads_for_investigation(inv_id)
+
+
+@app.post("/api/leads/{lead_id}/accept", tags=["Leads"])
+async def accept_lead(lead_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
+    """Investigator accepts an AI-suggested lead."""
+    lead = state.leads.get(lead_id)
+    if not lead:
+        raise HTTPException(404, "Lead not found")
+    lead.status = LeadStatus.ACCEPTED
+    state.log_audit(lead.investigation_id, "investigator", "lead_accepted",
+                    "lead", lead_id, f"Accepted: {lead.title}")
+    return lead
+
+
+@app.post("/api/leads/{lead_id}/dismiss", tags=["Leads"])
+async def dismiss_lead(lead_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
+    """Investigator dismisses an AI-suggested lead."""
+    lead = state.leads.get(lead_id)
+    if not lead:
+        raise HTTPException(404, "Lead not found")
+    lead.status = LeadStatus.DISMISSED
+    state.log_audit(lead.investigation_id, "investigator", "lead_dismissed",
+                    "lead", lead_id, f"Dismissed: {lead.title}")
+    return lead
+
+
+@app.post("/api/leads/{lead_id}/complete", tags=["Leads"])
+async def complete_lead(lead_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
+    """Mark a lead as completed."""
+    lead = state.leads.get(lead_id)
+    if not lead:
+        raise HTTPException(404, "Lead not found")
+    lead.status = LeadStatus.COMPLETED
+    state.log_audit(lead.investigation_id, "investigator", "lead_completed",
+                    "lead", lead_id, f"Completed: {lead.title}")
+    return lead
+
+
+# ─── API: Draft Documents ───────────────────────────────────
+
+@app.get("/api/investigations/{inv_id}/documents", tags=["Documents"])
+async def list_documents(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
+    """Get all auto-generated documents for an investigation."""
+    return state.get_documents_for_investigation(inv_id)
+
+
+@app.get("/api/documents/{doc_id}", tags=["Documents"])
+async def get_document(doc_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
+    doc = state.draft_documents.get(doc_id)
+    if not doc:
+        raise HTTPException(404, "Document not found")
+    return doc
+
+
+@app.post("/api/documents/{doc_id}/review", tags=["Documents"])
+async def mark_document_reviewed(doc_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
+    """Mark a document as reviewed by the investigator."""
+    doc = state.draft_documents.get(doc_id)
+    if not doc:
+        raise HTTPException(404, "Document not found")
+    doc.status = "reviewed"
+    return doc
+
+
+# ─── API: Correlations ──────────────────────────────────────
+
+@app.get("/api/investigations/{inv_id}/correlations", tags=["Correlations"])
+async def list_correlations(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
+    """Get all cross-evidence entity correlations."""
+    return state.get_correlations_for_investigation(inv_id)
+
+
+# ─── API: Discoveries ───────────────────────────────────────
+
+@app.get("/api/investigations/{inv_id}/discoveries", tags=["Discoveries"])
+async def list_discoveries(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
+    """Get all discoveries generated by the Discovery Engine."""
+    ctx = state.investigation_contexts.get(inv_id)
+    if not ctx:
+        return []
+    return ctx.discoveries
+
+
 # ─── API: Knowledge Graph ───────────────────────────────────
 
 @app.get("/api/investigations/{inv_id}/graph", tags=["Graph"])
-async def get_graph(inv_id: str):
+async def get_graph(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     """Get the knowledge graph scoped to this investigation."""
     graph_data = state.get_graph_for_investigation(inv_id)
     return {
@@ -589,14 +1124,14 @@ async def get_graph(inv_id: str):
 # ─── API: Timeline ──────────────────────────────────────────
 
 @app.get("/api/investigations/{inv_id}/timeline", tags=["Timeline"])
-async def get_timeline(inv_id: str):
+async def get_timeline(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     return state.get_timeline_for_investigation(inv_id)
 
 
 # ─── API: Report ────────────────────────────────────────────
 
 @app.post("/api/investigations/{inv_id}/report", tags=["Report"])
-async def create_report(inv_id: str):
+async def create_report(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     """Generate an investigation report."""
     inv = state.get_investigation(inv_id)
     if inv:
@@ -614,7 +1149,7 @@ async def create_report(inv_id: str):
 
 
 @app.get("/api/reports/{report_id}", tags=["Report"])
-async def get_report(report_id: str):
+async def get_report(report_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     report = state.reports.get(report_id)
     if not report:
         raise HTTPException(404, "Report not found")
@@ -624,7 +1159,7 @@ async def get_report(report_id: str):
 # ─── API: Audit Trail ───────────────────────────────────────
 
 @app.get("/api/investigations/{inv_id}/audit", tags=["Audit"])
-async def get_audit_trail(inv_id: str):
+async def get_audit_trail(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     """Get the complete audit trail for an investigation. Every action logged."""
     return state.get_audit_for_investigation(inv_id)
 
@@ -632,7 +1167,7 @@ async def get_audit_trail(inv_id: str):
 # ─── API: Capability Registry ───────────────────────────────
 
 @app.get("/api/capabilities", tags=["Platform"])
-async def list_capabilities():
+async def list_capabilities(current_user: Annotated[dict, Depends(get_current_user)]):
     """List all registered capabilities. The backbone discovers these at runtime."""
     return {
         name: {
@@ -643,10 +1178,47 @@ async def list_capabilities():
     }
 
 
+# ─── API: Dashboard Summary ────────────────────────────────
+
+@app.get("/api/investigations/{inv_id}/summary", tags=["Dashboard"])
+async def get_investigation_summary(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
+    """Get a complete summary for the investigation dashboard."""
+    inv = state.get_investigation(inv_id)
+    if not inv:
+        raise HTTPException(404, "Investigation not found")
+
+    evidence_items = state.get_evidence_for_investigation(inv_id)
+    findings = state.get_findings_for_investigation(inv_id)
+    leads = state.get_leads_for_investigation(inv_id)
+    documents = state.get_documents_for_investigation(inv_id)
+    correlations = state.get_correlations_for_investigation(inv_id)
+    timeline = state.get_timeline_for_investigation(inv_id)
+    graph = get_graph_summary(inv_id)
+    pipeline = state.pipeline_progress.get(inv_id)
+
+    return {
+        "investigation": inv,
+        "counts": {
+            "evidence": len(evidence_items),
+            "findings": len(findings),
+            "findings_pending": len([f for f in findings if f.status.value == "pending"]),
+            "leads": len(leads),
+            "leads_active": len([l for l in leads if l.status.value == "suggested"]),
+            "documents": len(documents),
+            "correlations": len(correlations),
+            "timeline_events": len(timeline),
+            "graph_nodes": graph["total_nodes"],
+            "graph_edges": graph["total_edges"],
+        },
+        "pipeline": pipeline,
+        "graph_summary": graph,
+    }
+
+
 # ─── API: SSE Events ────────────────────────────────────────
 
 @app.get("/api/investigations/{inv_id}/events", tags=["Events"])
-async def investigation_events(inv_id: str):
+async def investigation_events(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     """Server-Sent Events stream for real-time updates."""
     queue = asyncio.Queue(maxsize=100)
     if inv_id not in state.sse_queues:
@@ -677,7 +1249,7 @@ async def investigation_events(inv_id: str):
 # ─── API: Demo Pipeline (one-click for hackathon) ───────────
 
 @app.post("/api/investigations/{inv_id}/demo-pipeline", tags=["Demo"])
-async def demo_pipeline(inv_id: str):
+async def demo_pipeline(inv_id: str, current_user: Annotated[dict, Depends(get_current_user)]):
     """
     DEMO ONLY: Generates plan, auto-approves, triggers background pipeline.
     In production, the investigator controls each step.
@@ -689,7 +1261,6 @@ async def demo_pipeline(inv_id: str):
     state.log_audit(inv_id, "demo", "demo_pipeline_triggered",
                     "investigation", inv_id, "Demo mode: auto-generating and approving plan.")
 
-    # Generate plan
     evidence_items = [
         {"filename": e.filename, "mime_type": e.mime_type, "file_size": e.file_size}
         for e in state.get_evidence_for_investigation(inv_id)
@@ -701,12 +1272,18 @@ async def demo_pipeline(inv_id: str):
     state.plans[plan.id] = plan
     inv.plan_id = plan.id
 
-    # Trigger background pipeline
+    # Record in memory and transition states for demo
+    memory = state.get_or_create_memory(inv_id)
+    memory.record("human_decision", "demo",
+                  "Demo mode: strategy auto-approved.")
+    state.transition_state(inv_id, InvestigationState.RUNNING, "demo")
+
     asyncio.create_task(_execute_pipeline_background(inv_id))
 
     return {
-        "message": "Demo pipeline started. Plan auto-approved. Analysis running in background.",
+        "message": "Execution engine started. Backbone analysis running in background.",
         "plan_id": plan.id,
+        "state": "running",
         "track_progress": f"/api/investigations/{inv_id}/pipeline",
         "stream_events": f"/api/investigations/{inv_id}/events",
     }
@@ -718,12 +1295,29 @@ async def demo_pipeline(inv_id: str):
 async def health():
     return {
         "status": "ok",
-        "service": "AEGIS PoC v2",
+        "service": "AEGIS — Investigation Intelligence Platform",
         "architecture": "investigation_backbone",
-        "capabilities": len(CAPABILITY_REGISTRY),
+        "registered_capabilities": len(CAPABILITY_REGISTRY),
+        "capabilities": [
+            "image_intelligence", "vehicle_intelligence", "open_source_intelligence",
+            "document_intelligence", "audio_intelligence", "video_intelligence",
+            "communication_services", "lead_intelligence", "correlation_engine",
+            "discovery_engine",
+        ],
+        "backbone": {
+            "planner": "active",
+            "execution_engine": "active",
+            "shared_context": "active",
+            "discovery_engine": "active",
+            "state_machine": "active",
+        },
         "investigations": len(state.investigations),
         "evidence": len(state.evidence),
         "findings": len(state.findings),
+        "leads": len(state.leads),
+        "documents": len(state.draft_documents),
+        "correlations": len(state.correlations),
+        "discoveries": sum(len(c.discoveries) for c in state.investigation_contexts.values()),
         "graph_nodes": len(state.graph_nodes),
         "graph_edges": len(state.graph_edges),
         "audit_entries": len(state.audit_log),
@@ -731,7 +1325,6 @@ async def health():
 
 
 # ─── Static Files (Frontend) ─────────────────────────────────
-# Mount at root AFTER all API routes so relative links work
 
 if FRONTEND_DIR.exists():
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)

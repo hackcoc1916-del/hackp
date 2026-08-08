@@ -172,6 +172,20 @@ def _infer_relationship(e1: DetectedEntity, e2: DetectedEntity) -> str | None:
         return "OBSERVED_AT"
     if EntityType.VEHICLE in types and EntityType.LOCATION in types:
         return "SEEN_AT"
+    if EntityType.PERSON in types and EntityType.NUMBER_PLATE in types:
+        return "ASSOCIATED_WITH"
+    if EntityType.VEHICLE in types and EntityType.NUMBER_PLATE in types:
+        return "REGISTERED_AS"
+    if EntityType.PERSON in types and EntityType.PHONE_NUMBER in types:
+        return "USES"
+    if EntityType.PERSON in types and EntityType.EMAIL in types:
+        return "USES"
+    if EntityType.PERSON in types and EntityType.TATTOO in types:
+        return "HAS_FEATURE"
+    if EntityType.PERSON in types and EntityType.FINANCIAL in types:
+        return "TRANSACTED"
+    if EntityType.PERSON in types and EntityType.ORGANIZATION in types:
+        return "AFFILIATED_WITH"
     if types == {EntityType.PERSON}:
         return "CO_OCCURRED_WITH"
     return None
@@ -197,3 +211,74 @@ def get_graph_summary(investigation_id: str | None = None) -> dict:
         "node_types": type_counts,
         "relationship_types": list(set(e.relationship for e in edges)),
     }
+
+
+def find_shortest_path(node_a_id: str, node_b_id: str, investigation_id: str) -> list[dict] | None:
+    """Find the shortest path between two nodes using BFS."""
+    edges = [e for e in state.graph_edges.values() if e.investigation_id == investigation_id]
+
+    # Build adjacency list
+    adj: dict[str, list[tuple[str, str]]] = {}
+    for e in edges:
+        adj.setdefault(e.source_id, []).append((e.target_id, e.relationship))
+        adj.setdefault(e.target_id, []).append((e.source_id, e.relationship))
+
+    # BFS
+    from collections import deque
+    queue = deque([(node_a_id, [(node_a_id, "")])])
+    visited = {node_a_id}
+
+    while queue:
+        current, path = queue.popleft()
+        if current == node_b_id:
+            return [
+                {"node_id": nid, "label": state.graph_nodes.get(nid, GraphNode()).label, "relationship": rel}
+                for nid, rel in path
+            ]
+        for neighbor, rel in adj.get(current, []):
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.append((neighbor, path + [(neighbor, rel)]))
+
+    return None
+
+
+def find_clusters(investigation_id: str) -> list[dict]:
+    """Find connected clusters of entities in the graph."""
+    nodes = {n.id for n in state.graph_nodes.values() if n.investigation_id == investigation_id}
+    edges = [e for e in state.graph_edges.values() if e.investigation_id == investigation_id]
+
+    # Build adjacency list
+    adj: dict[str, set[str]] = {}
+    for e in edges:
+        adj.setdefault(e.source_id, set()).add(e.target_id)
+        adj.setdefault(e.target_id, set()).add(e.source_id)
+
+    visited = set()
+    clusters = []
+
+    for node_id in nodes:
+        if node_id not in visited:
+            # BFS to find connected component
+            cluster = set()
+            queue = [node_id]
+            while queue:
+                current = queue.pop(0)
+                if current in visited:
+                    continue
+                visited.add(current)
+                cluster.add(current)
+                for neighbor in adj.get(current, set()):
+                    if neighbor not in visited and neighbor in nodes:
+                        queue.append(neighbor)
+
+            if len(cluster) > 1:
+                cluster_nodes = [state.graph_nodes[nid] for nid in cluster if nid in state.graph_nodes]
+                clusters.append({
+                    "size": len(cluster),
+                    "nodes": [{"id": n.id, "label": n.label, "type": n.type.value} for n in cluster_nodes],
+                    "types": list(set(n.type.value for n in cluster_nodes)),
+                })
+
+    return sorted(clusters, key=lambda c: c["size"], reverse=True)
+

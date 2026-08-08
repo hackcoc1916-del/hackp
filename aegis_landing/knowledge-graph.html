@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -8,6 +8,28 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@350;400;450;500;550;600;700&family=JetBrains+Mono:wght@400;450;500&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+<script>
+    const token = localStorage.getItem('aegis_token');
+    if (!token && !window.location.href.includes('login.html')) {
+        window.location.href = 'login.html';
+    }
+    const originalFetch = window.fetch;
+    window.fetch = async function() {
+        let [resource, config] = arguments;
+        if (!config) config = {};
+        if (!config.headers) config.headers = {};
+        const storedToken = localStorage.getItem('aegis_token');
+        if (storedToken) {
+            config.headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+        const response = await originalFetch(resource, config);
+        if (response.status === 401) {
+            localStorage.removeItem('aegis_token');
+            window.location.href = 'login.html';
+        }
+        return response;
+    };
+</script>
 <style>
 :root {
   --bg-base:#09090b;--bg-surface:#0f1115;--bg-raised:#151619;--bg-elevated:#1a1b1f;
@@ -399,77 +421,25 @@ canvas#graphCanvas.grabbing{cursor:grabbing}
 
         <div class="dp-scroll">
           <!-- Properties tab -->
-          <div class="tab-content" id="tab-props">
-            <div class="dp-sec">
-              <div class="dp-sec-t">Entity Properties</div>
-              <div class="dp-row"><span class="dp-k">ID</span><span class="dp-v m">USR-992-817A</span></div>
-              <div class="dp-row"><span class="dp-k">Status</span><span class="dp-v" style="color:var(--critical)">● Active Target</span></div>
-              <div class="dp-row"><span class="dp-k">Last Seen</span><span class="dp-v m">2023-10-27 03:14Z</span></div>
-              <div class="dp-row"><span class="dp-k">Aliases</span><span class="dp-v">"J-Dog", "The Architect"</span></div>
-              <div class="dp-row"><span class="dp-k">Confidence</span><span class="dp-v m" style="color:var(--success)">0.91</span></div>
-              <div class="dp-row"><span class="dp-k">First Observed</span><span class="dp-v m">2023-10-14</span></div>
-              <div class="dp-row"><span class="dp-k">Risk Level</span><span class="dp-v" style="color:var(--critical)">Critical</span></div>
-            </div>
-            <div class="dp-sec">
-              <div class="dp-sec-t">Linked Evidence (7)</div>
-              <div class="ev-row">
-                <div><div class="ev-th"><img alt="CCTV" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOJdGU7MJ2kT3gGxjtE6UthjAgqgZvh-B8oZw3S8x_wuCeSWhoHBLyllm-4fco6iUbuqIEuWVqUdmlEjPs64HGp2qE935Ces9v2mI5sxxIsOGhjHf5KbFt6qTjiJiU5lmcK56HsptyVq85_2kIDXUwms1f-gzPynSosBITRFfdACQnyKMzbhZt16VdH18bEzECyW73u_qv1Su4HtP2UJKcXha58BeTmEBTGJXsAuLCb8L_XKWlgmPK6g"/></div><div class="ev-label">IMG_023.jpg</div></div>
-                <div><div class="ev-th"><span class="material-symbols-outlined">videocam</span></div><div class="ev-label">VID_alley.mp4</div></div>
-                <div><div class="ev-th"><span class="material-symbols-outlined">description</span></div><div class="ev-label">manifest.pdf</div></div>
-                <div><div class="ev-th"><span class="material-symbols-outlined">chat</span></div><div class="ev-label">chat_log.json</div></div>
-                <div><div class="ev-th"><span class="material-symbols-outlined">call</span></div><div class="ev-label">calls_oct.csv</div></div>
-              </div>
-            </div>
-          </div>
+          <div class="tab-content" id="tab-props"></div>
 
           <!-- Relationships tab -->
-          <div class="tab-content" id="tab-rels" style="display:none">
-            <div class="dp-sec">
-              <div class="dp-sec-t">Direct Connections (14)</div>
-              <div class="cn"><span class="cd" style="background:var(--n-org,var(--high))"></span><div class="ci"><div class="cname">Aegis Corp</div><div class="crel">Employed By (Past) · 2021-2023</div></div><span class="cconf">0.94</span></div>
-              <div class="cn"><span class="cd" style="background:var(--n-vehicle)"></span><div class="ci"><div class="cname">VEH-8821 · Silver Corolla</div><div class="crel">Registered Owner</div></div><span class="cconf">0.97</span></div>
-              <div class="cn"><span class="cd" style="background:var(--n-device)"></span><div class="ci"><div class="cname">DEVICE-4491 · iPhone 15</div><div class="crel">Owns Device</div></div><span class="cconf">0.88</span></div>
-              <div class="cn"><span class="cd" style="background:var(--n-phone)"></span><div class="ci"><div class="cname">+1-555-0147</div><div class="crel">Primary Number</div></div><span class="cconf">0.95</span></div>
-              <div class="cn"><span class="cd" style="background:var(--n-email)"></span><div class="ci"><div class="cname">j.doe847@proton.me</div><div class="crel">Email Owner</div></div><span class="cconf">0.82</span></div>
-              <div class="cn"><span class="cd" style="background:var(--n-account)"></span><div class="ci"><div class="cname">@architect_99</div><div class="crel">Signal Account</div></div><span class="cconf">0.76</span></div>
-              <div class="cn"><span class="cd" style="background:var(--n-location)"></span><div class="ci"><div class="cname">Sector 4G</div><div class="crel">Located At · Oct 27</div></div><span class="cconf">0.91</span></div>
-              <div class="cn"><span class="cd" style="background:var(--n-location)"></span><div class="ci"><div class="cname">Warehouse B · Pier District</div><div class="crel">Frequents · Oct 14, 21, 26</div></div><span class="cconf">0.85</span></div>
-              <div class="cn"><span class="cd" style="background:var(--n-person)"></span><div class="ci"><div class="cname">UNKNOWN_1</div><div class="crel">Possibly Same Person</div></div><span class="cconf">0.62</span></div>
-              <span class="exp-link">Show all 14 connections →</span>
-            </div>
-          </div>
+          <div class="tab-content" id="tab-rels" style="display:none"></div>
 
           <!-- Timeline tab -->
           <div class="tab-content" id="tab-timeline" style="display:none">
             <div class="dp-sec">
               <div class="dp-sec-t">Activity Timeline</div>
-              <div class="tl-item"><span class="tl-time">Oct 27<br/>03:14Z</span><div class="tl-body"><div class="tl-title">Observed at Sector 4G</div><div class="tl-desc">Near silver sedan VEH-8821 · CCTV Cam N-34A</div></div></div>
-              <div class="tl-item"><span class="tl-time">Oct 26<br/>22:48Z</span><div class="tl-body"><div class="tl-title">Phone ping at Pier District</div><div class="tl-desc">DEVICE-4491 · Accuracy 12.5m · Near Warehouse B</div></div></div>
-              <div class="tl-item"><span class="tl-time">Oct 26<br/>09:15Z</span><div class="tl-body"><div class="tl-title">Signal message intercepted</div><div class="tl-desc">"Package is secure. Moving to coordinate point beta at 2200."</div></div></div>
-              <div class="tl-item"><span class="tl-time">Oct 25<br/>16:30Z</span><div class="tl-body"><div class="tl-title">Financial transaction</div><div class="tl-desc">Wire transfer $14,200 to offshore account ZY-8841</div></div></div>
-              <div class="tl-item"><span class="tl-time">Oct 21<br/>11:22Z</span><div class="tl-body"><div class="tl-title">Warehouse B entry logged</div><div class="tl-desc">Keycard access USR-817A · Duration: 47 minutes</div></div></div>
-              <div class="tl-item"><span class="tl-time">Oct 14<br/>19:05Z</span><div class="tl-body"><div class="tl-title">First observation</div><div class="tl-desc">Vehicle VEH-8821 seen near warehouse loading dock</div></div></div>
+              <div class="tl-item"><span class="tl-time">Now</span><div class="tl-body"><div class="tl-title">Node Inspected</div><div class="tl-desc">Investigator viewed details</div></div></div>
             </div>
           </div>
 
           <!-- Findings tab -->
           <div class="tab-content" id="tab-findings" style="display:none">
             <div class="dp-sec">
-              <div class="dp-sec-t">Related Findings (3)</div>
+              <div class="dp-sec-t">Related Findings</div>
               <div class="fc-mini">
-                <div class="fcm-top"><span class="fcm-type">Vehicle Match</span><span class="fcm-conf hi">97%</span></div>
-                <div class="fcm-title">Silver Toyota Corolla at Sector 4G</div>
-                <div class="fcm-desc">Plate partial 7X-A4** matches watchlist WL-4491. Confirmed owner.</div>
-              </div>
-              <div class="fc-mini">
-                <div class="fcm-top"><span class="fcm-type">Cross-Case Intel</span><span class="fcm-conf hi">91%</span></div>
-                <div class="fcm-title">Vehicle linked to INV-8301 (Echo Syndicate)</div>
-                <div class="fcm-desc">Same vehicle observed near warehouse Oct 14. Case closed as low-priority — may need re-evaluation.</div>
-              </div>
-              <div class="fc-mini">
-                <div class="fcm-top"><span class="fcm-type">Person Detection</span><span class="fcm-conf md">72%</span></div>
-                <div class="fcm-title">Unidentified male near target vehicle</div>
-                <div class="fcm-desc">Single individual at 03:14Z, ~3m from vehicle. Low-light conditions reduce facial confidence.</div>
+                <div class="fcm-title">No direct findings available for this node.</div>
               </div>
             </div>
           </div>
@@ -504,50 +474,116 @@ const ICONS = {
   email:'✉',phone:'📞',location:'📍',evidence:'📄'
 };
 
-// Node data
-const nodes = [
-  {id:'john',type:'person',label:'JOHN DOE',sub:'Primary Suspect',x:0,y:0,r:28,highlight:true},
-  {id:'veh',type:'vehicle',label:'VEH-8821',sub:'Silver Corolla',x:-160,y:-100,r:22},
-  {id:'unk1',type:'person',label:'UNKNOWN_1',sub:'',x:-280,y:-160,r:16},
-  {id:'aegis',type:'account',label:'AEGIS CORP',sub:'Shell Company',x:200,y:-80,r:24},
-  {id:'s4g',type:'location',label:'SECTOR 4G',sub:'40.71°N, 74.01°W',x:-80,y:160,r:20},
-  {id:'dev',type:'device',label:'DEVICE-4491',sub:'iPhone 15',x:-220,y:80,r:18},
-  {id:'wh',type:'location',label:'WAREHOUSE B',sub:'Pier District',x:280,y:120,r:18},
-  {id:'img023',type:'evidence',label:'IMG_023.jpg',sub:'',x:100,y:180,r:14},
-  {id:'img024',type:'evidence',label:'IMG_024.jpg',sub:'',x:160,y:220,r:12},
-  {id:'vid01',type:'evidence',label:'VID_alley.mp4',sub:'',x:40,y:240,r:12},
-  {id:'phone1',type:'phone',label:'+1-555-0147',sub:'Primary',x:-100,y:-180,r:16},
-  {id:'email1',type:'email',label:'j.doe847@pm',sub:'',x:100,y:-180,r:14},
-  {id:'sig',type:'account',label:'@architect_99',sub:'Signal',x:280,y:-160,r:14},
-  {id:'chat1',type:'evidence',label:'chat_log.json',sub:'',x:320,y:20,r:12},
-  {id:'unk2',type:'person',label:'UNKNOWN_F_1',sub:'Female',x:-160,y:200,r:14},
-  {id:'bank1',type:'account',label:'ZY-8841',sub:'Offshore',x:340,y:-60,r:14},
-];
+let nodes = [];
+let edges = [];
 
-const edges = [
-  {from:'john',to:'veh',label:'OWNER'},
-  {from:'john',to:'aegis',label:'EMPLOYED_BY'},
-  {from:'john',to:'s4g',label:'LOCATED_AT'},
-  {from:'john',to:'dev',label:'OWNS'},
-  {from:'john',to:'phone1',label:'PRIMARY_NUM'},
-  {from:'john',to:'email1',label:'EMAIL'},
-  {from:'john',to:'sig',label:'ACCOUNT'},
-  {from:'john',to:'wh',label:'FREQUENTS'},
-  {from:'john',to:'img023',label:'DEPICTED_IN',dashed:true},
-  {from:'veh',to:'s4g',label:'SEEN_AT'},
-  {from:'veh',to:'img023',label:'DETECTED_IN',dashed:true},
-  {from:'veh',to:'img024',label:'DETECTED_IN',dashed:true},
-  {from:'veh',to:'unk1',label:'NEAR'},
-  {from:'unk1',to:'john',label:'POSSIBLY_SAME',dashed:true},
-  {from:'dev',to:'s4g',label:'PING'},
-  {from:'dev',to:'wh',label:'PING'},
-  {from:'aegis',to:'wh',label:'OPERATES'},
-  {from:'aegis',to:'bank1',label:'OWNS_ACCOUNT'},
-  {from:'sig',to:'chat1',label:'SOURCE'},
-  {from:'s4g',to:'vid01',label:'CAPTURED_AT',dashed:true},
-  {from:'unk2',to:'s4g',label:'OBSERVED_AT'},
-  {from:'email1',to:'sig',label:'LINKED'},
-];
+// Physics layout constants
+const FORCE_K = 150; // ideal spring length
+const ATTRACTION = 0.05;
+const REPULSION = 10000;
+const DAMPING = 0.8;
+
+// Map backend entity types to UI colors
+function mapType(t) {
+  t = t.toLowerCase();
+  if (t.includes('person')) return 'person';
+  if (t.includes('vehicle') || t.includes('car') || t.includes('truck')) return 'vehicle';
+  if (t.includes('location') || t.includes('address')) return 'location';
+  if (t.includes('phone') || t.includes('device')) return 'phone';
+  if (t.includes('email') || t.includes('account')) return 'email';
+  return 'evidence';
+}
+
+async function fetchGraphData() {
+  const params = new URLSearchParams(window.location.search);
+  const invId = params.get('inv') || 'INV-8492';
+  document.querySelector('.gb-bc .cb').textContent = invId;
+  
+  try {
+    const res = await fetch(`/api/investigations/${invId}/graph`).then(r => r.json());
+    
+    // Transform backend graph to UI format
+    nodes = (res.nodes || []).map(n => {
+      const uitype = mapType(n.type);
+      return {
+        id: n.id,
+        type: uitype,
+        rawType: n.type,
+        label: n.label,
+        sub: n.properties ? Object.values(n.properties)[0] : '',
+        properties: n.properties || {},
+        x: (Math.random() - 0.5) * 800,
+        y: (Math.random() - 0.5) * 600,
+        vx: 0,
+        vy: 0,
+        r: uitype === 'person' ? 24 : uitype === 'vehicle' ? 20 : 16,
+        highlight: n.properties && n.properties.role === 'suspect'
+      };
+    });
+    
+    edges = (res.edges || []).map(e => ({
+      from: e.source_id,
+      to: e.target_id,
+      label: e.relationship.replace(/_/g, ' '),
+      confidence: e.confidence,
+      reasoning: e.reasoning
+    }));
+    
+    // Update stats
+    document.querySelectorAll('.g-stats .v')[0].textContent = nodes.length;
+    document.querySelectorAll('.g-stats .v')[1].textContent = edges.length;
+    
+    // Initial layout passes
+    for(let i=0; i<100; i++) stepLayout();
+    
+    resize();
+  } catch(e) {
+    console.error('Error fetching graph', e);
+  }
+}
+
+function stepLayout() {
+  if (nodes.length === 0) return;
+  // Repulsion
+  for(let i=0; i<nodes.length; i++) {
+    for(let j=i+1; j<nodes.length; j++) {
+      let dx = nodes[i].x - nodes[j].x;
+      let dy = nodes[i].y - nodes[j].y;
+      let distSq = dx*dx + dy*dy;
+      if (distSq === 0) { dx = Math.random(); dy = Math.random(); distSq = 1; }
+      if (distSq < 100000) {
+        let f = REPULSION / distSq;
+        let fx = (dx / Math.sqrt(distSq)) * f;
+        let fy = (dy / Math.sqrt(distSq)) * f;
+        nodes[i].vx += fx; nodes[i].vy += fy;
+        nodes[j].vx -= fx; nodes[j].vy -= fy;
+      }
+    }
+  }
+  // Attraction
+  edges.forEach(e => {
+    const fn = nodes.find(n => n.id === e.from);
+    const tn = nodes.find(n => n.id === e.to);
+    if (!fn || !tn) return;
+    let dx = tn.x - fn.x;
+    let dy = tn.y - fn.y;
+    let dist = Math.sqrt(dx*dx + dy*dy);
+    let f = (dist - FORCE_K) * ATTRACTION;
+    let fx = (dx / dist) * f;
+    let fy = (dy / dist) * f;
+    fn.vx += fx; fn.vy += fy;
+    tn.vx -= fx; tn.vy -= fy;
+  });
+  // Center gravity and integration
+  nodes.forEach(n => {
+    n.vx -= n.x * 0.005;
+    n.vy -= n.y * 0.005;
+    n.x += n.vx;
+    n.y += n.vy;
+    n.vx *= DAMPING;
+    n.vy *= DAMPING;
+  });
+}
 
 function resize() {
   dpr = window.devicePixelRatio || 1;
@@ -801,13 +837,39 @@ function selectNode(node) {
   panel.classList.add('open');
 
   document.getElementById('dpName').textContent = node.label;
-  const color = COLORS[node.type];
+  const color = COLORS[node.type] || 'var(--text-muted)';
   document.getElementById('dpIcon').style.background = color;
   const badge = document.getElementById('dpBadge');
   badge.style.background = color + '20';
   badge.style.color = color;
   badge.style.borderColor = color + '50';
   badge.textContent = node.sub || node.type.toUpperCase();
+  
+  // Dynamic properties
+  let propsHtml = '<div class="dp-sec"><div class="dp-sec-t">Entity Properties</div>';
+  propsHtml += `<div class="dp-row"><span class="dp-k">ID</span><span class="dp-v m">${node.id.substring(0,8)}</span></div>`;
+  propsHtml += `<div class="dp-row"><span class="dp-k">Type</span><span class="dp-v">${node.rawType}</span></div>`;
+  for(const [k,v] of Object.entries(node.properties || {})) {
+    if(k !== 'label' && typeof v !== 'object') {
+      propsHtml += `<div class="dp-row"><span class="dp-k" style="text-transform:capitalize;">${k}</span><span class="dp-v">${v}</span></div>`;
+    }
+  }
+  propsHtml += '</div>';
+  document.getElementById('tab-props').innerHTML = propsHtml;
+  
+  // Dynamic relations
+  const nodeEdges = edges.filter(e => e.from === node.id || e.to === node.id);
+  let relsHtml = `<div class="dp-sec"><div class="dp-sec-t">Direct Connections (${nodeEdges.length})</div>`;
+  nodeEdges.forEach(e => {
+    const isOut = e.from === node.id;
+    const otherNodeId = isOut ? e.to : e.from;
+    const otherNode = nodes.find(n => n.id === otherNodeId);
+    if(!otherNode) return;
+    const rcolor = COLORS[otherNode.type] || 'var(--text-muted)';
+    relsHtml += `<div class="cn" onclick="selectNode(nodes.find(n=>n.id==='${otherNode.id}'))"><span class="cd" style="background:${rcolor}"></span><div class="ci"><div class="cname">${otherNode.label}</div><div class="crel" style="text-transform:uppercase;">${isOut ? '→' : '←'} ${e.label}</div></div><span class="cconf">${e.confidence ? (e.confidence*100).toFixed(0)+'%' : ''}</span></div>`;
+  });
+  relsHtml += '</div>';
+  document.getElementById('tab-rels').innerHTML = relsHtml;
 
   // Switch to properties tab
   document.querySelectorAll('.dp-tab').forEach(t => t.classList.remove('active-tab'));
@@ -854,22 +916,20 @@ document.addEventListener('keydown', e => {
 // Init
 window.addEventListener('resize', resize);
 resize();
+fetchGraphData();
 
 // Gentle float animation
 let t = 0;
 function animate() {
-  t += 0.003;
-  nodes.forEach((n, i) => {
-    n._baseX = n._baseX ?? n.x;
-    n._baseY = n._baseY ?? n.y;
-    n.x = n._baseX + Math.sin(t + i * 0.7) * 1.5;
-    n.y = n._baseY + Math.cos(t + i * 0.5) * 1.2;
-  });
-  draw();
+  if (nodes.length > 0) {
+    stepLayout();
+    draw();
+  }
   requestAnimationFrame(animate);
 }
 animate();
 </script>
-<script src="nav.js"></script>`n</body>
+<script src="nav.js"></script>
+</body>
 </html>
 
